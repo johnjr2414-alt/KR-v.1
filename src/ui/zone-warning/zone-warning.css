@@ -1,0 +1,132 @@
+/* ── Zone Warning Modal Styles ── */
+
+#zone-warning-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+  pointer-events: auto;
+}
+
+.zone-warning__backdrop {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 5, 10, 0.88);
+}
+
+.zone-warning__card {
+  background: linear-gradient(180deg, #1c1c2c 0%, #12121e 100%);
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 32px 36px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.zone-warning__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 2px solid #ef444488;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.zone-warning__icon {
+  font-size: 24px;
+}
+
+.zone-warning__title {
+  font-size: 18px;
+  color: #f1f5f9;
+  font-weight: 700;
+  margin: 0;
+}
+
+.zone-warning__zone-name {
+  font-size: 22px;
+  color: #f0c060;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.zone-warning__danger-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.zone-warning__stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.zone-warning__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zone-warning__stat-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.zone-warning__stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.zone-warning__message {
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.zone-warning__buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.zone-warning__btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.zone-warning__btn:hover {
+  opacity: 0.85;
+}
+
+.zone-warning__btn--cancel {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+}
+
+.zone-warning__btn--confirm {
+  background: transparent;
+  border: 2px solid;
+  font-size: 14px;
+}
