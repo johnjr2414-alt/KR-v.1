@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_TITLE, GAME_VERSION } from '../constants';
 import { StartMenu } from '../ui/start-menu';
 import { roleManager, AppRole } from '../core/roles';
-import { UserGameScene } from './UserGameScene';
+import { VillageScene } from './VillageScene';
 import { AdminDashboardScene } from './AdminDashboardScene';
 import '../ui/start-menu/start-menu.css';
 
@@ -48,7 +48,7 @@ export class BootScene extends Phaser.Scene {
    */
   private navigateToRoleScreen(role: AppRole): void {
     if (role === AppRole.User) {
-      this.scene.start(UserGameScene.KEY);
+      this.scene.start(VillageScene.KEY);
     } else {
       this.scene.start(AdminDashboardScene.KEY);
     }

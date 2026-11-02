@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 import { createGameConfig } from './config/gameConfig';
-import { BootScene, UserGameScene, AdminDashboardScene } from './scenes';
+import {
+  BootScene,
+  UserGameScene,
+  AdminDashboardScene,
+  VillageScene,
+  HuntingScene,
+} from './scenes';
 
 /**
  * Application entry point.
@@ -10,6 +16,8 @@ import { BootScene, UserGameScene, AdminDashboardScene } from './scenes';
  */
 const config = createGameConfig([
   BootScene,
+  VillageScene,
+  HuntingScene,
   UserGameScene,
   AdminDashboardScene,
 ]);
