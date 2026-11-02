@@ -29,3 +29,16 @@ export {
   SelectionOutcome,
   type QuestionSelectionResult,
 } from './retrieval/QuestionSelector';
+
+// ─── Evaluation ─────────────────────────────────────────────────────────────
+export {
+  AnswerEvaluator,
+  normalizeAnswerText,
+  type AnswerEvaluationResult,
+} from './evaluation/AnswerEvaluator';
+
+// ─── Timer ──────────────────────────────────────────────────────────────────
+export {
+  QuestionTimer,
+  type QuestionTimerOptions,
+} from './timer/QuestionTimer';
