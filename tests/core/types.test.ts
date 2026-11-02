@@ -86,6 +86,9 @@ describe('Core Type Definitions', () => {
       subject: SubjectId.Mathematics,
       category: MonsterCategory.Weak,
       baseExp: 15, baseGold: 5,
+      dropConfig: { drops: [], bonusGoldMin: 0, bonusGoldMax: 2 },
+      spriteColor: 0x22c55e,
+      detectionRadius: 64,
     };
     expect(monster.subject).toBe('mathematics');
     expect(monster.category).toBe('weak');

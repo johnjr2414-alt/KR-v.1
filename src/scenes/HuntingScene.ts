@@ -1,38 +1,68 @@
 import Phaser from 'phaser';
-import { BEGINNERS_HUNTING_GROUND, type MapDefinition } from '../world';
+import { BEGINNERS_HUNTING_GROUND, HUNTING_ZONE_REGISTRY, type MapDefinition } from '../world';
+import type { HuntingZoneDefinition } from '../world/HuntingZoneDefinition';
 import { calculateMovementVelocity, DEFAULT_MOVE_SPEED } from '../player';
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import type { SceneTransitionData } from './VillageScene';
+import { monsterSpawner } from '../monsters';
+import { MonsterSprite } from './monsters/MonsterSprite';
+import type { MonsterDefinition } from '../core/types/monster';
+
+/** Number of monsters to spawn per zone visit. */
+const MONSTERS_PER_ZONE = 6;
 
 /**
- * HuntingScene — visual representation of Beginners Hunting Ground.
+ * HuntingScene — visual representation of a hunting zone.
  *
  * Implements:
  * - Hunting ground map environment (darker wilderness palette)
- * - Map boundary and tree obstacle collisions
+ * - Map boundary and obstacle collisions
  * - Player placeholder movement
+ * - Monster spawning from zone configuration
+ * - Proximity-based interaction prompt ("[SPACE] Fight")
+ * - Encounter initiation (logs monster; actual battle in Phase 12)
  * - Return exit gateway back to Beginners Village
  */
 export class HuntingScene extends Phaser.Scene {
   static readonly KEY = 'HuntingScene';
 
   private mapData: MapDefinition = BEGINNERS_HUNTING_GROUND;
+  private zoneData: HuntingZoneDefinition = BEGINNERS_HUNTING_GROUND as unknown as HuntingZoneDefinition;
   private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private inputAdapter!: PhaserInputAdapter;
   private spawnPosition: { x: number; y: number } = { x: 100, y: 400 };
   private isTransitioning = false;
 
+  /** All currently active monster sprites. */
+  private monsterSprites: MonsterSprite[] = [];
+  /** The monster nearest to the player (if within detection radius). */
+  private nearbyMonster: MonsterSprite | null = null;
+  /** Interaction keys. */
+  private interactKey!: Phaser.Input.Keyboard.Key;
+
   constructor() {
     super({ key: HuntingScene.KEY });
   }
 
-  init(data?: SceneTransitionData): void {
+  init(data?: SceneTransitionData & { zoneId?: string }): void {
     this.isTransitioning = false;
+    this.nearbyMonster = null;
+    this.monsterSprites = [];
+
     if (data?.spawnPosition) {
       this.spawnPosition = { ...data.spawnPosition };
     } else {
       this.spawnPosition = { x: 100, y: 400 };
+    }
+
+    // Resolve zone from passed ID, fall back to General Hunting Ground
+    if (data?.zoneId && HUNTING_ZONE_REGISTRY[data.zoneId]) {
+      this.zoneData = HUNTING_ZONE_REGISTRY[data.zoneId];
+    } else {
+      // Default: General Beginner Zone
+      const fallbackId = Object.keys(HUNTING_ZONE_REGISTRY)[4] ?? Object.keys(HUNTING_ZONE_REGISTRY)[0];
+      this.zoneData = HUNTING_ZONE_REGISTRY[fallbackId];
     }
   }
 
@@ -61,14 +91,14 @@ export class HuntingScene extends Phaser.Scene {
 
     this.obstacles = this.physics.add.staticGroup();
 
-    // Create some placeholder rock/tree clusters
     this.createPlaceholderObstacles();
-
-    // Create player
     this.createPlayer();
-
-    // Create return exit
     this.createExits();
+    this.spawnMonsters();
+
+    // Register interaction key
+    this.interactKey = (this.input.keyboard as Phaser.Input.Keyboard.KeyboardPlugin)
+      .addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     this.inputAdapter = new PhaserInputAdapter(this);
 
@@ -76,26 +106,103 @@ export class HuntingScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
     // HUD
-    const hud = this.add.text(16, 16, `${this.mapData.name} (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`, {
-      fontFamily: 'Arial',
-      fontSize: '16px',
-      color: '#ef4444',
-      backgroundColor: '#111827dd',
-      padding: { x: 8, y: 4 },
-    });
+    const zoneName = this.zoneData.name ?? this.mapData.name;
+    const hud = this.add.text(
+      16, 16,
+      `${zoneName}  (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
+      {
+        fontFamily: 'Arial',
+        fontSize: '16px',
+        color: '#ef4444',
+        backgroundColor: '#111827dd',
+        padding: { x: 8, y: 4 },
+      },
+    );
     hud.setScrollFactor(0);
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player || !this.player.body) {
-      return;
-    }
+    if (this.isTransitioning || !this.player || !this.player.body) return;
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
-
     this.player.setVelocity(velocity.vx, velocity.vy);
+
+    this.updateMonsterProximity();
+
+    if (this.nearbyMonster && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      this.initiateEncounter(this.nearbyMonster.getDefinition());
+    }
   }
+
+  // ─── Private — Monster spawning ─────────────────────────────────────────────
+
+  private spawnMonsters(): void {
+    const { width, height } = this.mapData.bounds;
+    const plan = monsterSpawner.generateSpawnPlan(
+      this.zoneData,
+      { width, height },
+      MONSTERS_PER_ZONE,
+    );
+
+    for (const { definition, position } of plan) {
+      const sprite = new MonsterSprite(this, position.x, position.y, definition);
+
+      // Register detection overlap between player and monster zone
+      // (registered after player creation — player exists at this point)
+      this.physics.add.overlap(this.player, sprite.detectionZone, () => {
+        if (this.nearbyMonster !== sprite) {
+          if (this.nearbyMonster) this.nearbyMonster.hidePrompt();
+          this.nearbyMonster = sprite;
+          sprite.showPrompt();
+        }
+      });
+
+      this.monsterSprites.push(sprite);
+    }
+  }
+
+  /**
+   * Each frame: if the player is no longer within detection radius of the
+   * last known nearby monster, clear the reference and hide the prompt.
+   * We use distance-check rather than overlap-clear because Phaser static-zone
+   * overlaps do not fire an "exit" callback.
+   */
+  private updateMonsterProximity(): void {
+    // Manually check distance since static-zone overlaps don't auto-clear
+    if (this.nearbyMonster) {
+      const px = this.player.x;
+      const py = this.player.y;
+      const mx = this.nearbyMonster.x;
+      const my = this.nearbyMonster.y;
+      const def = this.nearbyMonster.getDefinition();
+      const distSq = (px - mx) ** 2 + (py - my) ** 2;
+      const threshSq = (def.detectionRadius + 20) ** 2;
+
+      if (distSq > threshSq) {
+        this.nearbyMonster.hidePrompt();
+        this.nearbyMonster = null;
+      }
+    }
+  }
+
+  // ─── Private — Encounter ────────────────────────────────────────────────────
+
+  /**
+   * Called when the player initiates a fight with a monster.
+   * Logs the encounter; actual battle mechanics are implemented in Phase 12.
+   */
+  private initiateEncounter(monster: MonsterDefinition): void {
+    console.log(
+      `[HuntingScene] Battle would start with "${monster.name}" ` +
+      `(Lv.${monster.level}, ${monster.subject}, ${monster.category})`,
+    );
+
+    // TODO (Phase 12): transition to BattleScene with monster data
+    // this.scene.start('BattleScene', { monster });
+  }
+
+  // ─── Private — Map setup ────────────────────────────────────────────────────
 
   private createPlaceholderObstacles(): void {
     const rocks = [
@@ -119,7 +226,6 @@ export class HuntingScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
-    // Re-use or generate player texture
     if (!this.textures.exists('player-placeholder')) {
       const g = this.make.graphics({ x: 0, y: 0 });
       g.fillStyle(0x3b82f6, 1);
@@ -173,9 +279,18 @@ export class HuntingScene extends Phaser.Scene {
     }
   }
 
-  private handleZoneTransition(targetMapId: string, entryPosition: { x: number; y: number }): void {
+  private handleZoneTransition(
+    targetMapId: string,
+    entryPosition: { x: number; y: number },
+  ): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+
+    // Clean up monster tween/state before leaving
+    for (const sprite of this.monsterSprites) {
+      sprite.defeat();
+    }
+    this.monsterSprites = [];
 
     this.player.setVelocity(0, 0);
 

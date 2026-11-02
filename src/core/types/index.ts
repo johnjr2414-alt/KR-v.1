@@ -2,7 +2,7 @@
 // Each type file is focused on a single domain concern.
 
 export type { CharacterStats, PlayerState } from './player';
-export type { MonsterDefinition } from './monster';
+export type { MonsterDefinition, DropEntry, MonsterDropConfig } from './monster';
 export { MonsterCategory } from './monster';
 export type { Question, QuestionChoice } from './question';
 export { QuestionType, QuestionStatus } from './question';
