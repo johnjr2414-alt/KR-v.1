@@ -1,12 +1,17 @@
 import Phaser from 'phaser';
 import { createGameConfig } from './config/gameConfig';
-import { BootScene } from './scenes';
+import { BootScene, UserGameScene, AdminDashboardScene } from './scenes';
 
 /**
  * Application entry point.
  *
- * Assembles the scene list, builds the Phaser config,
- * and boots the game engine into the DOM container.
+ * Registers all scenes and boots the Phaser engine.
+ * BootScene runs first and presents the role-selection start menu.
  */
-const config = createGameConfig([BootScene]);
+const config = createGameConfig([
+  BootScene,
+  UserGameScene,
+  AdminDashboardScene,
+]);
+
 new Phaser.Game(config);

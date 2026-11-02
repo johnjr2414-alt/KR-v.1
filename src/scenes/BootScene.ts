@@ -1,15 +1,21 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, GAME_VERSION } from '../constants';
+import { StartMenu } from '../ui/start-menu';
+import { roleManager, AppRole } from '../core/roles';
+import { UserGameScene } from './UserGameScene';
+import { AdminDashboardScene } from './AdminDashboardScene';
+import '../ui/start-menu/start-menu.css';
 
 /**
  * BootScene — the first scene loaded by Phaser.
  *
- * Displays the game title and version on a simple background.
- * This is a placeholder; future phases will add asset preloading
- * and database initialization before transitioning to the game world.
+ * Displays a brief splash, then presents the HTML Start Menu overlay.
+ * When the player selects a role, navigates to the corresponding scene.
  */
 export class BootScene extends Phaser.Scene {
   static readonly KEY = 'BootScene';
+
+  private startMenu: StartMenu | null = null;
 
   constructor() {
     super({ key: BootScene.KEY });
@@ -18,24 +24,9 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // Simple gradient-like background using a rectangle.
+    // Minimal background while the start menu is visible.
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
 
-    // Game title.
-    this.add.text(width / 2, height / 2 - 30, GAME_TITLE, {
-      fontFamily: 'Arial',
-      fontSize: '32px',
-      color: '#f0c060',
-    }).setOrigin(0.5);
-
-    // Version label.
-    this.add.text(width / 2, height / 2 + 20, `v${GAME_VERSION}`, {
-      fontFamily: 'Arial',
-      fontSize: '16px',
-      color: '#a0a0b0',
-    }).setOrigin(0.5);
-
-    // Engine confirmation.
     this.add.text(width / 2, height - 30, `Phaser ${Phaser.VERSION}`, {
       fontFamily: 'Arial',
       fontSize: '12px',
@@ -43,5 +34,29 @@ export class BootScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     console.log(`${GAME_TITLE} v${GAME_VERSION} — BootScene loaded (Phaser ${Phaser.VERSION}).`);
+
+    // Show the DOM start menu overlay.
+    this.startMenu = new StartMenu();
+    this.startMenu.show((role: AppRole) => {
+      roleManager.selectRole(role);
+      this.navigateToRoleScreen(role);
+    });
+  }
+
+  /**
+   * Transition to the appropriate Phaser scene based on the selected role.
+   */
+  private navigateToRoleScreen(role: AppRole): void {
+    if (role === AppRole.User) {
+      this.scene.start(UserGameScene.KEY);
+    } else {
+      this.scene.start(AdminDashboardScene.KEY);
+    }
+  }
+
+  /** Clean up the DOM overlay if the scene is shut down. */
+  shutdown(): void {
+    this.startMenu?.destroy();
+    this.startMenu = null;
   }
 }
