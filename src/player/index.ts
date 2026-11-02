@@ -1,1 +1,5 @@
-/** Player data, profile, and character state management. */
+export {
+  createPlayerData,
+  DEFAULT_INITIAL_PLAYER_DATA,
+  type PlayerData,
+} from './PlayerData';
