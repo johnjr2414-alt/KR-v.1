@@ -6,6 +6,7 @@ import {
   AdminDashboardScene,
   VillageScene,
   HuntingScene,
+  BattleScene,
 } from './scenes';
 
 /**
@@ -18,6 +19,7 @@ const config = createGameConfig([
   BootScene,
   VillageScene,
   HuntingScene,
+  BattleScene,
   UserGameScene,
   AdminDashboardScene,
 ]);

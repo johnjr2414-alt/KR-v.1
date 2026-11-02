@@ -190,16 +190,31 @@ export class HuntingScene extends Phaser.Scene {
 
   /**
    * Called when the player initiates a fight with a monster.
-   * Logs the encounter; actual battle mechanics are implemented in Phase 12.
+   * Transitions to BattleScene with the monster definition and return coordinates.
    */
   private initiateEncounter(monster: MonsterDefinition): void {
-    console.log(
-      `[HuntingScene] Battle would start with "${monster.name}" ` +
-      `(Lv.${monster.level}, ${monster.subject}, ${monster.category})`,
-    );
+    if (this.isTransitioning) return;
+    this.isTransitioning = true;
 
-    // TODO (Phase 12): transition to BattleScene with monster data
-    // this.scene.start('BattleScene', { monster });
+    this.player.setVelocity(0, 0);
+
+    const playerPos = { x: this.player.x, y: this.player.y };
+
+    // Clean up active monster sprites before transitioning
+    for (const sprite of this.monsterSprites) {
+      sprite.defeat();
+    }
+    this.monsterSprites = [];
+
+    this.cameras.main.fade(250, 0, 0, 0, false, (_camera: unknown, progress: number) => {
+      if (progress === 1) {
+        this.scene.start('BattleScene', {
+          monster,
+          returnSceneKey: HuntingScene.KEY,
+          returnPosition: playerPos,
+        });
+      }
+    });
   }
 
   // ─── Private — Map setup ────────────────────────────────────────────────────
