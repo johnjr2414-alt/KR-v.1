@@ -8,6 +8,11 @@ export {
   type QuestionValidationResult,
 } from './management/QuestionValidator';
 
+export {
+  QuestionManager,
+  type ImportResult,
+} from './management/QuestionManager';
+
 // ─── Retrieval ───────────────────────────────────────────────────────────────
 export {
   loadBundledQuestions,
