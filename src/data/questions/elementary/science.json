@@ -1,0 +1,66 @@
+[
+  {
+    "id": "elem-sci-001",
+    "educationalTier": "elementary",
+    "subject": "science",
+    "topic": "biology",
+    "difficulty": 1,
+    "type": "multiple-choice",
+    "question": "What do plants need to make food?",
+    "choices": [
+      { "choiceId": "a", "text": "Darkness and cold" },
+      { "choiceId": "b", "text": "Sunlight, water, and carbon dioxide" },
+      { "choiceId": "c", "text": "Only soil" },
+      { "choiceId": "d", "text": "Wind and rain" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "Plants use sunlight, water, and carbon dioxide for photosynthesis.",
+    "timeLimit": 20,
+    "baseMasteryExp": 10,
+    "tags": ["photosynthesis", "plants"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-sci-002",
+    "educationalTier": "elementary",
+    "subject": "science",
+    "topic": "states-of-matter",
+    "difficulty": 1,
+    "type": "multiple-choice",
+    "question": "What are the three states of matter?",
+    "choices": [
+      { "choiceId": "a", "text": "Solid, liquid, gas" },
+      { "choiceId": "b", "text": "Hot, warm, cold" },
+      { "choiceId": "c", "text": "Hard, soft, flexible" },
+      { "choiceId": "d", "text": "Heavy, light, medium" }
+    ],
+    "correctAnswer": "a",
+    "explanation": "The three common states of matter are solid, liquid, and gas.",
+    "timeLimit": 15,
+    "baseMasteryExp": 10,
+    "tags": ["matter", "states"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-sci-003",
+    "educationalTier": "elementary",
+    "subject": "science",
+    "topic": "solar-system",
+    "difficulty": 2,
+    "type": "identification",
+    "question": "What planet is closest to the Sun?",
+    "correctAnswer": "Mercury",
+    "acceptedAnswers": ["mercury"],
+    "explanation": "Mercury is the closest planet to the Sun.",
+    "timeLimit": 15,
+    "baseMasteryExp": 15,
+    "tags": ["planets", "solar-system"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

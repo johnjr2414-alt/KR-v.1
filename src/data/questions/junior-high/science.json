@@ -1,0 +1,60 @@
+[
+  {
+    "id": "jh-sci-001",
+    "educationalTier": "junior-high",
+    "subject": "science",
+    "topic": "chemistry",
+    "difficulty": 3,
+    "type": "identification",
+    "question": "What is the chemical symbol for water?",
+    "correctAnswer": "H2O",
+    "acceptedAnswers": ["h2o", "H₂O"],
+    "explanation": "Water consists of two hydrogen atoms and one oxygen atom: H₂O.",
+    "timeLimit": 15,
+    "baseMasteryExp": 20,
+    "tags": ["chemistry", "symbols", "compounds"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "jh-sci-002",
+    "educationalTier": "junior-high",
+    "subject": "science",
+    "topic": "physics",
+    "difficulty": 3,
+    "type": "multiple-choice",
+    "question": "What unit measures electrical resistance?",
+    "choices": [
+      { "choiceId": "a", "text": "Ampere" },
+      { "choiceId": "b", "text": "Volt" },
+      { "choiceId": "c", "text": "Ohm" },
+      { "choiceId": "d", "text": "Watt" }
+    ],
+    "correctAnswer": "c",
+    "explanation": "Electrical resistance is measured in Ohms (Ω).",
+    "timeLimit": 15,
+    "baseMasteryExp": 20,
+    "tags": ["physics", "electricity", "units"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "jh-sci-003",
+    "educationalTier": "junior-high",
+    "subject": "science",
+    "topic": "biology",
+    "difficulty": 4,
+    "type": "essay",
+    "question": "Explain how the human circulatory system works.",
+    "expectedAnswer": "The circulatory system pumps blood through the heart, arteries, veins, and capillaries. The heart has four chambers. Oxygenated blood is pumped from the left ventricle through arteries to the body. Deoxygenated blood returns via veins to the right atrium and is sent to the lungs for re-oxygenation.",
+    "explanation": "The circulatory system is a closed system powered by the heart that delivers oxygen and nutrients to cells.",
+    "timeLimit": 120,
+    "baseMasteryExp": 50,
+    "tags": ["biology", "circulatory-system", "human-body"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

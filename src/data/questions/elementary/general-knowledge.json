@@ -1,0 +1,66 @@
+[
+  {
+    "id": "elem-gk-001",
+    "educationalTier": "elementary",
+    "subject": "general-knowledge",
+    "topic": "geography",
+    "difficulty": 1,
+    "type": "multiple-choice",
+    "question": "What is the largest ocean on Earth?",
+    "choices": [
+      { "choiceId": "a", "text": "Atlantic Ocean" },
+      { "choiceId": "b", "text": "Indian Ocean" },
+      { "choiceId": "c", "text": "Pacific Ocean" },
+      { "choiceId": "d", "text": "Arctic Ocean" }
+    ],
+    "correctAnswer": "c",
+    "explanation": "The Pacific Ocean is the largest and deepest ocean on Earth.",
+    "timeLimit": 15,
+    "baseMasteryExp": 10,
+    "tags": ["geography", "oceans"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-gk-002",
+    "educationalTier": "elementary",
+    "subject": "general-knowledge",
+    "topic": "animals",
+    "difficulty": 1,
+    "type": "identification",
+    "question": "What is the fastest land animal?",
+    "correctAnswer": "Cheetah",
+    "acceptedAnswers": ["cheetah"],
+    "explanation": "The cheetah can reach speeds of up to 70 mph (112 km/h).",
+    "timeLimit": 15,
+    "baseMasteryExp": 10,
+    "tags": ["animals", "records"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-gk-003",
+    "educationalTier": "elementary",
+    "subject": "general-knowledge",
+    "topic": "geography",
+    "difficulty": 2,
+    "type": "multiple-choice",
+    "question": "Which continent is the Sahara Desert located on?",
+    "choices": [
+      { "choiceId": "a", "text": "Asia" },
+      { "choiceId": "b", "text": "Africa" },
+      { "choiceId": "c", "text": "South America" },
+      { "choiceId": "d", "text": "Australia" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "The Sahara Desert is located in northern Africa.",
+    "timeLimit": 15,
+    "baseMasteryExp": 15,
+    "tags": ["geography", "deserts"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

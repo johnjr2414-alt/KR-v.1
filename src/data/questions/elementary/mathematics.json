@@ -1,0 +1,112 @@
+[
+  {
+    "id": "elem-math-001",
+    "educationalTier": "elementary",
+    "subject": "mathematics",
+    "topic": "addition",
+    "difficulty": 1,
+    "type": "multiple-choice",
+    "question": "What is 3 + 5?",
+    "choices": [
+      { "choiceId": "a", "text": "6" },
+      { "choiceId": "b", "text": "7" },
+      { "choiceId": "c", "text": "8" },
+      { "choiceId": "d", "text": "9" }
+    ],
+    "correctAnswer": "c",
+    "explanation": "3 + 5 = 8.",
+    "timeLimit": 15,
+    "baseMasteryExp": 10,
+    "tags": ["addition", "grade-1"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-math-002",
+    "educationalTier": "elementary",
+    "subject": "mathematics",
+    "topic": "subtraction",
+    "difficulty": 1,
+    "type": "multiple-choice",
+    "question": "What is 10 - 4?",
+    "choices": [
+      { "choiceId": "a", "text": "5" },
+      { "choiceId": "b", "text": "6" },
+      { "choiceId": "c", "text": "7" },
+      { "choiceId": "d", "text": "8" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "10 - 4 = 6.",
+    "timeLimit": 15,
+    "baseMasteryExp": 10,
+    "tags": ["subtraction", "grade-1"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-math-003",
+    "educationalTier": "elementary",
+    "subject": "mathematics",
+    "topic": "multiplication",
+    "difficulty": 2,
+    "type": "multiple-choice",
+    "question": "What is 6 × 7?",
+    "choices": [
+      { "choiceId": "a", "text": "36" },
+      { "choiceId": "b", "text": "42" },
+      { "choiceId": "c", "text": "48" },
+      { "choiceId": "d", "text": "56" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "6 × 7 = 42.",
+    "timeLimit": 20,
+    "baseMasteryExp": 15,
+    "tags": ["multiplication", "grade-3"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-math-004",
+    "educationalTier": "elementary",
+    "subject": "mathematics",
+    "topic": "fractions",
+    "difficulty": 3,
+    "type": "identification",
+    "question": "What is 1/2 + 1/4 expressed as a fraction?",
+    "correctAnswer": "3/4",
+    "acceptedAnswers": ["3/4", "0.75"],
+    "explanation": "1/2 = 2/4, so 2/4 + 1/4 = 3/4.",
+    "timeLimit": 25,
+    "baseMasteryExp": 20,
+    "tags": ["fractions", "grade-4"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-math-005",
+    "educationalTier": "elementary",
+    "subject": "mathematics",
+    "topic": "division",
+    "difficulty": 2,
+    "type": "multiple-choice",
+    "question": "What is 56 ÷ 8?",
+    "choices": [
+      { "choiceId": "a", "text": "6" },
+      { "choiceId": "b", "text": "7" },
+      { "choiceId": "c", "text": "8" },
+      { "choiceId": "d", "text": "9" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "56 ÷ 8 = 7.",
+    "timeLimit": 15,
+    "baseMasteryExp": 15,
+    "tags": ["division", "grade-3"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

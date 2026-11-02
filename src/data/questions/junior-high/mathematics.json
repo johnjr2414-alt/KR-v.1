@@ -1,0 +1,66 @@
+[
+  {
+    "id": "jh-math-001",
+    "educationalTier": "junior-high",
+    "subject": "mathematics",
+    "topic": "algebra",
+    "difficulty": 3,
+    "type": "multiple-choice",
+    "question": "What is the value of x in the equation 2x + 6 = 18?",
+    "choices": [
+      { "choiceId": "a", "text": "4" },
+      { "choiceId": "b", "text": "6" },
+      { "choiceId": "c", "text": "8" },
+      { "choiceId": "d", "text": "12" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "2x + 6 = 18 → 2x = 12 → x = 6.",
+    "timeLimit": 30,
+    "baseMasteryExp": 25,
+    "tags": ["algebra", "linear-equations"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "jh-math-002",
+    "educationalTier": "junior-high",
+    "subject": "mathematics",
+    "topic": "geometry",
+    "difficulty": 3,
+    "type": "identification",
+    "question": "What is the area of a triangle with base 10 and height 6?",
+    "correctAnswer": "30",
+    "acceptedAnswers": ["30", "30 sq units"],
+    "explanation": "Area = (1/2) × base × height = (1/2) × 10 × 6 = 30.",
+    "timeLimit": 25,
+    "baseMasteryExp": 25,
+    "tags": ["geometry", "area", "triangles"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "jh-math-003",
+    "educationalTier": "junior-high",
+    "subject": "mathematics",
+    "topic": "algebra",
+    "difficulty": 4,
+    "type": "multiple-choice",
+    "question": "Simplify: 3(x + 2) - 2(x - 1)",
+    "choices": [
+      { "choiceId": "a", "text": "x + 4" },
+      { "choiceId": "b", "text": "x + 8" },
+      { "choiceId": "c", "text": "5x + 4" },
+      { "choiceId": "d", "text": "x + 6" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "3x + 6 - 2x + 2 = x + 8.",
+    "timeLimit": 30,
+    "baseMasteryExp": 30,
+    "tags": ["algebra", "simplification"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

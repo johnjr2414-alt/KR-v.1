@@ -1,0 +1,43 @@
+[
+  {
+    "id": "elem-prog-001",
+    "educationalTier": "elementary",
+    "subject": "programming",
+    "topic": "logic",
+    "difficulty": 1,
+    "type": "multiple-choice",
+    "question": "In a flowchart, what shape represents a decision?",
+    "choices": [
+      { "choiceId": "a", "text": "Rectangle" },
+      { "choiceId": "b", "text": "Diamond" },
+      { "choiceId": "c", "text": "Circle" },
+      { "choiceId": "d", "text": "Triangle" }
+    ],
+    "correctAnswer": "b",
+    "explanation": "A diamond shape is used in flowcharts to represent a decision or branching point.",
+    "timeLimit": 20,
+    "baseMasteryExp": 10,
+    "tags": ["flowcharts", "logic"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "elem-prog-002",
+    "educationalTier": "elementary",
+    "subject": "programming",
+    "topic": "binary",
+    "difficulty": 2,
+    "type": "identification",
+    "question": "What is the decimal value of the binary number 1010?",
+    "correctAnswer": "10",
+    "acceptedAnswers": ["10", "ten"],
+    "explanation": "1010 in binary = (1×8) + (0×4) + (1×2) + (0×1) = 10.",
+    "timeLimit": 25,
+    "baseMasteryExp": 15,
+    "tags": ["binary", "number-systems"],
+    "status": "published",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]
