@@ -113,6 +113,8 @@ describe('Core Type Definitions', () => {
       timeLimit: 15,
       baseMasteryExp: 20,
       status: QuestionStatus.Published,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
     };
     expect(q.correctAnswer).toBe('b');
     expect(q.choices).toHaveLength(4);
