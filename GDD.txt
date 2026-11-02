@@ -1,0 +1,2277 @@
+# KNOWLEDGE REALMS
+## Final Game Design Rules and Claude Code Development Package
+
+**Document Version:** 1.0  
+**Project Type:** 2D Fantasy Action RPG / Educational RPG / Economic Simulation  
+**Initial Platform:** Web Browser  
+**Initial Architecture:** Offline-first, single-player  
+**Development Tools:** Claude Code, TypeScript, Phaser 3, Vite  
+**Data Storage:** JSON and IndexedDB  
+**Initial Multiplayer:** Not included in the first playable version
+
+---
+
+# PART I — FINAL GAME DESIGN DOCUMENT (GDD)
+
+## 1. Game Concept
+
+Knowledge Realms is a 2D fantasy action RPG inspired by classic games such as Zenonia.
+
+Players explore a fantasy world, fight monsters, complete quests, collect equipment, develop professions, manage businesses, and improve their knowledge across different academic disciplines.
+
+The game's distinguishing feature is its educational combat system: battles involve answering questions related to the subject of the monster's hunting zone.
+
+Players have two distinct progression systems:
+
+1. Character Level — developed primarily by defeating monsters and earning combat experience.
+2. Knowledge Mastery — developed by answering educational questions and demonstrating subject knowledge.
+
+These systems are connected but independent.
+
+A player can have a high character level but relatively low mastery in Mathematics, for example. Likewise, a player can have strong Mathematics mastery without having an equally high character level.
+
+## 2. Core Gameplay Loop
+
+1. Select User mode.
+2. Enter the world.
+3. Explore towns, buildings, and hunting zones.
+4. Find and initiate a monster battle.
+5. Answer a randomized set of educational questions.
+6. Receive damage or deal damage depending on the answer.
+7. Defeat the monster and receive rewards.
+8. Gain character EXP, Gold, items, and subject mastery EXP.
+9. Improve equipment and abilities.
+10. Enter more challenging zones and explore additional game systems.
+
+## 3. Player Roles
+
+The initial game has two entry options:
+
+### User
+- Play the game.
+- Explore maps and buildings.
+- Fight monsters.
+- Answer questions.
+- Gain experience and mastery.
+- Manage inventory and equipment.
+- Complete quests.
+- Access available economy and business systems.
+
+### Super Admin
+- Add questions.
+- View questions.
+- Edit questions.
+- Delete questions.
+- Filter questions by educational tier, subject, topic, and question type.
+- Import and export question data.
+
+The first prototype will use a simple User / Super Admin role selector.
+
+**Important:** This is not secure authentication. Anyone with access to the application can select Super Admin. Real authentication and authorization must be added before public deployment.
+
+## 4. Character Progression
+
+Character Level is primarily earned through combat EXP.
+
+Possible EXP sources:
+- Defeating monsters.
+- Defeating bosses.
+- Completing quests.
+- Exploring designated areas.
+- Completing selected achievements.
+
+Monster grinding is the primary source of character EXP.
+
+Character Level determines:
+- General character progression.
+- Access to recommended hunting areas.
+- Monster difficulty comparisons.
+- General RPG stat growth.
+- Educational question difficulty adjustments during PvE.
+
+Character statistics:
+- HP
+- MP
+- Attack
+- Defense
+- Intelligence
+- Critical Rate
+- Movement Speed
+
+The initial implementation should use configurable formulas rather than hardcoded progression values.
+
+## 5. Knowledge Mastery
+
+Each subject has its own independent mastery progression.
+
+Initial disciplines:
+
+1. Mathematics and Logic
+2. General Knowledge
+3. Science
+4. Programming and Technology
+5. Physics and Engineering
+6. Business and Economics
+
+Additional subjects can be added without changing the core progression system.
+
+Example:
+
+A player may have:
+- Mathematics Mastery: Level 20
+- Science Mastery: Level 8
+- Programming Mastery: Level 15
+- Business Mastery: Level 3
+
+Mastery progression is performance-based.
+
+### Mastery EXP rules
+
+Correct answers can award mastery EXP.
+
+The amount awarded depends on:
+- Question difficulty.
+- Educational tier.
+- Answer correctness.
+- Answering speed.
+- Performance streak or combo, if enabled.
+
+Recommended initial calculation:
+
+Mastery EXP = Base Mastery EXP × Difficulty Multiplier × Speed Multiplier × Performance Multiplier
+
+The exact multipliers must be configurable.
+
+Initial rules:
+- Correct answers award mastery EXP.
+- Incorrect answers award zero mastery EXP.
+- Faster correct answers may receive a speed bonus.
+- More difficult questions award more mastery EXP.
+- Repeatedly answering easy questions should not provide the same progression rate as answering challenging questions.
+- Mastery EXP must be awarded only once per question attempt.
+
+Mastery may eventually improve subject-related abilities, knowledge skills, and bonuses.
+
+Character Level and Knowledge Mastery must not be merged into one EXP system.
+
+## 6. Educational Tiers and Character Level
+
+The initial educational tier mapping is:
+
+| Character Level | Educational Tier | Status |
+|---|---|---|
+| 1–10 | Elementary | Confirmed |
+| 11–50 | Junior High School | Confirmed |
+| 51–100 | Senior High School | Confirmed |
+| 101–150 | College | Proposed |
+| 151–200 | Master's | Proposed |
+| 201–250 | PhD | Proposed |
+| 251+ | Specialization | Proposed |
+
+The ranges above must be stored in configuration data so they can be changed without rewriting the question system.
+
+The higher-tier level ranges are initial design values, not permanent rules.
+
+## 7. Beginners Village
+
+All new players start in Beginners Village.
+
+It is the first map and is designed for character levels 1–10.
+
+The village contains:
+- Starting area.
+- NPCs.
+- Shops.
+- Training area.
+- Mathematics Building.
+- General Knowledge Library.
+- Science Laboratory.
+- Technology Workshop.
+- Beginner hunting grounds.
+
+Each subject-specific building provides access to monsters associated with its subject.
+
+Example:
+
+### Mathematics Building
+- Math Slime
+- Number Goblin
+- Fraction Bat
+
+### General Knowledge Library
+- Book Mimic
+- Quiz Spirit
+- Knowledge Wisp
+
+### Science Laboratory
+- Chemical Blob
+- Atom Bug
+- Experiment Golem
+
+### Technology Workshop
+- Binary Slime
+- Circuit Beetle
+- Glitch Sprite
+
+These are example monster names and can be expanded later.
+
+## 8. Hunting Zones and Monster Levels
+
+Each hunting zone contains monsters with:
+- Monster ID.
+- Name.
+- Level.
+- HP.
+- Attack.
+- Defense.
+- Subject.
+- EXP reward.
+- Gold reward.
+- Question configuration.
+- Drop table.
+
+Monster level determines its baseline educational challenge.
+
+For example:
+- Level 1 monsters generally use Elementary questions.
+- Level 10 monsters generally use advanced Elementary questions.
+- Level 15 monsters generally use Junior High School questions.
+- Level 50 monsters generally use advanced Junior High School questions.
+- Level 60 monsters generally use Senior High School questions.
+
+The actual question selection also considers the player's level.
+
+## 9. PvE Question Difficulty System
+
+This is a core mechanic of Knowledge Realms.
+
+Question difficulty must consider BOTH:
+
+1. Monster Level.
+2. Difference between Player Level and Monster Level.
+
+The system must not simply select questions using the player's level alone.
+
+### 9.1 Base Educational Tier
+
+The monster's level determines the baseline educational tier.
+
+Example:
+
+- Player Level 5 fighting Monster Level 5: Elementary baseline.
+- Player Level 15 fighting Monster Level 15: Junior High baseline.
+- Player Level 55 fighting Monster Level 55: Senior High baseline.
+
+### 9.2 Level Difference
+
+Calculate:
+
+Level Difference = Monster Level − Player Level
+
+Interpretation:
+- Positive result: Monster is higher level than the player.
+- Zero: Same level.
+- Negative result: Monster is lower level than the player.
+
+### 9.3 Higher-Level Monster Challenge Rule
+
+When the player fights a monster significantly above their level, the question difficulty must increase sharply.
+
+This is intentional. Higher-level monsters should challenge players with questions that may be far beyond their normal educational tier.
+
+Recommended initial configurable difficulty-shift table:
+
+| Monster Above Player | Additional Question Challenge |
+|---|---|
+| 1–2 levels | Slightly harder |
+| 3–4 levels | Moderately harder |
+| 5–9 levels | Major difficulty increase |
+| 10–19 levels | May jump one or more educational tiers |
+| 20+ levels | Very high challenge; may jump multiple tiers |
+
+The difficulty shift must be configurable.
+
+For example:
+
+- Player Level 5 vs Monster Level 5: Elementary questions.
+- Player Level 5 vs Monster Level 7: Harder Elementary questions.
+- Player Level 5 vs Monster Level 10: Very challenging Elementary questions, potentially introductory questions from the next tier if the configured pool allows it.
+- Player Level 5 vs Monster Level 15: Questions may jump to Junior High School.
+- Player Level 5 vs Monster Level 30: Questions may be substantially above the player's normal tier.
+
+The system must avoid selecting questions above the available content pool. If the required tier or difficulty has insufficient questions, use the nearest available valid question and record the fallback for debugging.
+
+### 9.4 Lower-Level Monster Rule
+
+When a high-level player fights a much lower-level monster:
+- Questions should become easier relative to the monster's baseline tier.
+- The system should avoid giving unnecessarily advanced questions.
+- The monster should remain a low-level monster for reward and EXP calculations.
+- Easy monsters must not become an unlimited high-efficiency mastery farming method.
+
+### 9.5 Important Separation
+
+The PvE system uses monster level and player-versus-monster level difference.
+
+The PvP system uses the separate reverse-difficulty rule described later.
+
+Do not reuse the PvP reverse-difficulty formula for PvE.
+
+## 10. Battle System
+
+Combat uses a hybrid system.
+
+Players can explore and perform basic actions without answering questions. Educational questions are integrated into monster battles.
+
+### 10.1 Battle Sequence
+
+1. Player initiates a fight.
+2. Game identifies the monster and its configuration.
+3. Game calculates the educational tier and difficulty.
+4. Game randomly determines the number of questions for that battle.
+5. A question appears with a countdown timer.
+6. Player submits an answer.
+7. Game evaluates the answer.
+8. If correct, the player attacks the monster.
+9. If incorrect or the timer expires, the player takes damage.
+10. The battle continues until the monster or player is defeated.
+
+### 10.2 Random Question Count
+
+The number of questions per monster battle is randomized.
+
+The random range depends on monster characteristics, especially HP and battle difficulty.
+
+Recommended initial example:
+
+| Monster Type | Suggested Question Count |
+|---|---|
+| Weak monster | 2–3 |
+| Normal monster | 3–5 |
+| Strong monster | 4–7 |
+| Elite monster | 5–8 |
+| Boss | 6–10 |
+
+These values are starting configuration values, not fixed balance rules.
+
+The number of questions must be determined when the battle begins and remain fixed for that battle.
+
+The system must not reroll the total question count after every answer.
+
+### 10.3 Correct Answer
+
+A correct answer allows the player to attack.
+
+Damage can depend on:
+- Player Attack.
+- Monster Defense.
+- Character Level.
+- Subject Mastery.
+- Equipment.
+- Critical chance.
+- Question difficulty.
+- Performance bonuses.
+
+### 10.4 Incorrect Answer
+
+The selected rule is DAMAGE-PLAYER.
+
+When the player answers incorrectly:
+- The player receives damage from the monster.
+- The question attempt is consumed.
+- The monster remains alive unless a separate battle rule causes otherwise.
+- The next battle question proceeds if the player survives and questions remain.
+
+Timeouts should initially use the same penalty as an incorrect answer.
+
+### 10.5 Victory and Defeat
+
+Victory:
+- Award monster EXP.
+- Award Gold.
+- Roll item drops.
+- Award eligible subject mastery EXP from correct answers.
+- Update quest progress.
+
+Defeat:
+- End the battle.
+- Apply the configured defeat penalty.
+- Do not award monster victory rewards.
+
+All rewards must be handled by the game rules system, not by the visual interface.
+
+## 11. Question Types
+
+The question system supports:
+
+1. Multiple Choice
+2. Identification
+3. Essay
+
+### Multiple Choice
+- One correct answer initially.
+- Multiple answer options.
+- Correct answer identified by a stable choice ID.
+- Option order may be randomized.
+
+### Identification
+- Player enters a text answer.
+- Comparison should ignore case and unnecessary leading/trailing spaces.
+- Multiple accepted answer aliases may be supported.
+
+### Essay
+- Player enters a longer response.
+- Store the expected answer, explanation, and grading reference.
+- Initial version should not depend on AI grading.
+- Essay questions are best suited for quests, research, training, and special learning activities.
+
+For the initial fast-paced monster combat system, use Multiple Choice and Identification by default. Essay questions should be excluded from ordinary random combat selection unless explicitly configured for a special encounter.
+
+## 12. Question Database
+
+Questions must be stored separately from game logic.
+
+Recommended organization:
+
+data/questions/
+- elementary/
+- junior-high/
+- senior-high/
+- college/
+- masters/
+- phd/
+- specialization/
+
+Each tier should have separate subject files.
+
+Example:
+
+data/questions/elementary/mathematics.json  
+data/questions/elementary/science.json  
+data/questions/junior-high/mathematics.json  
+data/questions/college/programming.json
+
+### Question Data Fields
+
+Each question should support:
+
+- id
+- educationalLevel
+- subject
+- topic
+- difficulty
+- type
+- question
+- choices
+- correctAnswer
+- acceptedAnswers
+- expectedAnswer
+- explanation
+- timeLimit
+- baseMasteryExp
+- tags
+- status
+
+Fields that do not apply to a particular question type may be omitted or left empty according to the schema.
+
+Question IDs must be unique.
+
+Questions must be validated before being added, imported, or published.
+
+## 13. Super Admin Question Management
+
+Super Admin should have a simple dashboard.
+
+Initial required functions:
+- Add question.
+- View/list questions.
+- Delete question.
+
+Recommended additional functions:
+- Edit question.
+- Search and filter.
+- Import JSON.
+- Export JSON.
+
+Filters:
+- Educational tier.
+- Subject.
+- Topic.
+- Difficulty.
+- Question type.
+- Publication status.
+
+The question management system must be separate from the battle question retrieval system.
+
+### Storage Rules
+
+Bundled JSON files provide initial question content.
+
+IndexedDB stores local changes, additions, and overrides.
+
+The application must preserve admin changes after refresh or restart.
+
+Deleting a bundled question must not cause it to reappear after reloading the application. Use a deletion record or tombstone mechanism.
+
+Importing questions must validate the file before saving.
+
+Exporting questions must produce a usable JSON backup.
+
+## 14. Zone Access
+
+The selected rule is RISK ACCESS.
+
+Players may enter higher-level zones even when below the recommended level.
+
+However:
+- The zone must clearly display its recommended level.
+- The player must receive a warning before entering a dangerous zone.
+- Monsters can be much stronger than the player.
+- Question difficulty can jump substantially under the higher-level monster rule.
+- The player can be defeated quickly.
+- Rewards should remain consistent with the monster's actual level and challenge.
+
+Do not automatically prevent entry merely because the player's level is too low.
+
+## 15. PvP System
+
+PvP is a future feature, not required for the first playable version.
+
+The selected PvP difficulty rule is REVERSE DIFFICULTY.
+
+The lower-level player receives harder questions.
+
+The higher-level player receives easier questions.
+
+This is an intentional design decision and must not be silently replaced with equalized or standard difficulty.
+
+PvP will eventually support:
+- Casual matches.
+- Ranked matches.
+- Knowledge duels.
+- Survival challenges.
+- Tournaments.
+- Championships.
+
+The exact PvP scoring, damage, and balancing formula remains configurable and must be designed separately from PvE.
+
+The first version should not implement online PvP.
+
+## 16. RPG Systems
+
+Planned RPG features:
+- Inventory.
+- Equipment.
+- Weapons.
+- Armor.
+- Accessories.
+- Consumables.
+- Skills.
+- Crafting.
+- Professions.
+- Quests.
+- NPC interactions.
+- Monster drops.
+- Boss encounters.
+
+These systems should be developed after the core educational combat loop works.
+
+## 17. Economy and Business Simulation
+
+The game uses fictional Gold.
+
+Planned features:
+- Shops.
+- Marketplace.
+- Banking.
+- Savings.
+- Fixed deposits.
+- Investments.
+- Player-owned businesses.
+- Employees.
+- Production.
+- Expenses.
+- Income.
+- Property ownership.
+
+No real-money investment or financial return is involved.
+
+Offline income must be capped and calculated carefully. Local device time is not tamper-proof, so offline rewards must not be treated as secure online economic state.
+
+## 18. World Regions
+
+Planned regions:
+
+1. Beginners Village — starting area.
+2. Emerald Forest — nature and biological themes.
+3. Ironhold Kingdom — mining and engineering.
+4. Golden Capital — banking, trade, and business.
+5. Arcane Technological City — programming and research.
+6. Forgotten Lands — endgame region.
+7. Colosseum — future arena.
+
+The first playable version should focus on Beginners Village and a small number of connected hunting areas.
+
+## 19. Initial Version Scope
+
+The first playable release should prioritize a complete core gameplay loop.
+
+Initial target:
+- User and Super Admin entry.
+- One player character.
+- Beginners Village.
+- Basic movement and collision.
+- Subject-specific buildings.
+- A small number of hunting zones.
+- At least five monster types.
+- Monster levels.
+- Question selection.
+- Multiple Choice and Identification.
+- Random question count per monster.
+- Timed answering.
+- Correct-answer attacks.
+- Incorrect-answer player damage.
+- Character EXP and leveling.
+- Subject mastery EXP.
+- Basic rewards.
+- Local saving.
+- Question administration.
+
+Do not attempt to build the entire world, online PvP, or advanced economic simulation before this core loop works.
+
+## 20. Technical Architecture
+
+Recommended stack:
+
+- Phaser 3: 2D game rendering and game scenes.
+- TypeScript: game logic and data structures.
+- Vite: development server and build system.
+- HTML/CSS: menus and administrative interface.
+- JSON: bundled static content.
+- IndexedDB: local persistent data.
+- Git: version control.
+
+The project should be modular.
+
+Game rules must be separated from visual rendering.
+
+Recommended modules:
+
+- core
+- player
+- world
+- maps
+- monsters
+- combat
+- questions
+- mastery
+- admin
+- inventory
+- equipment
+- quests
+- economy
+- storage
+- UI
+
+Each module must have a clearly defined responsibility and public interface.
+
+The question system must not depend on Phaser scenes.
+
+The combat rules must not directly manipulate HTML elements.
+
+The admin interface must not directly modify the battle engine.
+
+## 21. Development Principles
+
+1. Build one small feature at a time.
+2. Do not implement several unrelated systems in one task.
+3. Inspect the existing project before changing files.
+4. Keep modules independent.
+5. Use TypeScript types and validation.
+6. Avoid unnecessary dependencies.
+7. Do not rewrite working code without a clear reason.
+8. Run relevant tests after each task.
+9. Run type checking and build checks at appropriate milestones.
+10. Update documentation when interfaces or rules change.
+11. Keep configuration values separate from business logic.
+12. Never silently change an approved game mechanic.
+13. Do not implement future features prematurely.
+14. Ask before making major architectural changes.
+
+---
+
+# PART II — CLAUDE CODE MASTER INSTRUCTIONS
+
+## 22. Root CLAUDE.md Instructions
+
+Create a root file named CLAUDE.md containing the following instructions.
+
+### Project Identity
+
+You are developing Knowledge Realms, a modular 2D educational fantasy action RPG.
+
+The project uses:
+- Phaser 3
+- TypeScript
+- Vite
+- HTML/CSS
+- JSON
+- IndexedDB
+
+The initial version is an offline-first single-player browser game.
+
+### Your Responsibilities
+
+Act as:
+- Senior game developer.
+- TypeScript developer.
+- Software architect.
+- Game systems developer.
+- Testing and debugging assistant.
+
+Explain important technical decisions in beginner-friendly language.
+
+### Critical Development Rules
+
+1. Work only on the specific task requested.
+2. Inspect the existing project before modifying it.
+3. Never assume that a file or module does not exist without checking.
+4. Do not overwrite unrelated files.
+5. Do not regenerate the entire project when only one module needs changes.
+6. Avoid unnecessary dependencies.
+7. Keep game logic independent from rendering.
+8. Use TypeScript types and clear interfaces.
+9. Keep configuration values outside core algorithms.
+10. Do not introduce online services unless explicitly requested.
+11. Do not implement features outside the current task.
+12. Preserve all previously approved game mechanics.
+13. Do not silently replace the approved PvE or PvP rules.
+14. If a requirement is unclear and materially affects architecture, ask before implementing it.
+15. Keep changes as small as reasonably possible.
+
+### Testing Requirements
+
+After implementation:
+- Run relevant tests.
+- Run TypeScript type checking if available.
+- Run the build if the task affects application integration.
+- Fix errors introduced by your changes.
+- Do not claim tests passed unless they actually ran successfully.
+
+### Required Completion Report
+
+At the end of every task, report:
+
+1. What was implemented.
+2. Files created.
+3. Files modified.
+4. Tests performed.
+5. Test results.
+6. Known limitations.
+7. Any recommended next step.
+
+Stop after completing the assigned task.
+
+Do not automatically proceed to the next task.
+
+---
+
+# PART III — ORDERED CLAUDE CODE PROMPT PACKAGE
+
+## DEVELOPMENT RULE
+
+Submit these prompts one at a time.
+
+Wait for Claude Code to finish each task and inspect its completion report before submitting the next prompt.
+
+Do not paste all prompts into one request.
+
+Each prompt should result in one small, verifiable implementation task.
+
+---
+
+# PHASE 0 — PROJECT DOCUMENTATION
+
+## Prompt 0.1 — Inspect the Workspace
+
+Inspect the current project directory.
+
+Do not create or modify any files yet.
+
+Report:
+- Existing folders.
+- Existing source files.
+- Existing configuration files.
+- Existing dependencies.
+- Existing project architecture.
+- Whether this is an empty project or an existing application.
+
+Identify anything that may affect the planned Knowledge Realms architecture.
+
+Do not make changes.
+
+## Prompt 0.2 — Create the Game Design Document
+
+Create docs/GDD.md.
+
+Use the approved Knowledge Realms game design rules as the source of truth.
+
+Include:
+- Game concept.
+- Player progression.
+- Knowledge mastery.
+- Educational tiers.
+- Beginners Village.
+- Subject-specific hunting zones.
+- Monster levels.
+- PvE difficulty calculation requirements.
+- Random battle question count.
+- Incorrect-answer damage rule.
+- Risk-based zone access.
+- Question types.
+- Admin functionality.
+- PvP reverse difficulty.
+- Future economy and RPG systems.
+
+Do not implement code.
+
+## Prompt 0.3 — Create the Game Rules Document
+
+Create docs/GAME_RULES.md.
+
+Document the approved mechanics in implementation-ready language.
+
+Pay special attention to:
+- Character EXP versus mastery EXP.
+- Monster-level educational tier selection.
+- Higher-level monster difficulty jumps.
+- Lower-level monster difficulty adjustments.
+- Random question count per battle.
+- Correct-answer and incorrect-answer consequences.
+- Mastery performance rewards.
+- Zone access warnings.
+- PvP reverse difficulty.
+
+Use configurable formulas and clearly identify values that are still provisional.
+
+Do not implement code.
+
+## Prompt 0.4 — Create the Technical Architecture Document
+
+Create docs/TECHNICAL_ARCHITECTURE.md.
+
+Document the proposed architecture using Phaser 3, TypeScript, Vite, JSON, and IndexedDB.
+
+Explain:
+- Application structure.
+- Game scenes.
+- Module responsibilities.
+- Data flow.
+- Storage.
+- Question retrieval.
+- Combat integration.
+- Admin integration.
+- Testing strategy.
+
+Keep the architecture suitable for a beginner-maintained project.
+
+Do not implement code.
+
+## Prompt 0.5 — Create the Module Map
+
+Create docs/MODULE_MAP.md.
+
+List each planned module and its responsibility.
+
+For each module, document:
+- Purpose.
+- Files it owns.
+- Public interfaces.
+- Dependencies.
+- Modules it must not directly control.
+
+Emphasize separation between:
+- Rendering.
+- Game rules.
+- Questions.
+- Combat.
+- Mastery.
+- Admin.
+- Storage.
+
+Do not implement code.
+
+## Prompt 0.6 — Create the Development Roadmap
+
+Create docs/DEVELOPMENT_ROADMAP.md.
+
+List the development tasks in their intended order.
+
+Organize them into small tasks corresponding to the remaining prompts in this package.
+
+Do not implement code.
+
+---
+
+# PHASE 1 — PROJECT FOUNDATION
+
+## Prompt 1.1 — Initialize the Vite Project
+
+Initialize the project using Vite and TypeScript.
+
+If the project already exists, inspect it and only add missing configuration.
+
+Do not implement game mechanics.
+
+Verify that the development server starts successfully.
+
+## Prompt 1.2 — Install Phaser
+
+Install Phaser 3 as the game engine dependency.
+
+Do not create gameplay systems.
+
+Verify that Phaser can be imported from the TypeScript application.
+
+## Prompt 1.3 — Configure TypeScript
+
+Review and configure TypeScript for a maintainable modular application.
+
+Use strict type checking where practical.
+
+Do not weaken compiler settings simply to hide errors.
+
+Do not implement gameplay features.
+
+## Prompt 1.4 — Configure Project Scripts
+
+Add or correct package scripts for:
+- Development.
+- Production build.
+- Type checking.
+- Tests, when a test framework has been introduced.
+
+Do not add unnecessary scripts or dependencies.
+
+## Prompt 1.5 — Configure Git
+
+Initialize Git if it is not already initialized.
+
+Create a suitable .gitignore.
+
+Do not delete or overwrite existing user work.
+
+Explain how to create a commit after each completed implementation task.
+
+---
+
+# PHASE 2 — APPLICATION STRUCTURE
+
+## Prompt 2.1 — Create the Source Folder Structure
+
+Create the initial modular source folder structure.
+
+Include folders for:
+- core
+- scenes
+- player
+- world
+- monsters
+- combat
+- questions
+- mastery
+- admin
+- storage
+- UI
+- data
+
+Create only folder placeholders or minimal index files where necessary.
+
+Do not implement game mechanics.
+
+## Prompt 2.2 — Create Shared Type Definitions
+
+Create the initial shared TypeScript types for:
+- Player.
+- Monster.
+- Question.
+- Subject.
+- Educational tier.
+- Character statistics.
+- Mastery.
+- Battle result.
+
+Do not implement behavior.
+
+Avoid creating large files containing unrelated interfaces.
+
+## Prompt 2.3 — Create the Application Entry Point
+
+Create the main application entry point.
+
+Set up the basic HTML page and application bootstrap.
+
+Do not implement the world or gameplay.
+
+## Prompt 2.4 — Create the Phaser Game Configuration
+
+Create the Phaser game configuration.
+
+Use a configurable canvas size and a suitable scaling strategy.
+
+Do not create maps, characters, or combat.
+
+## Prompt 2.5 — Create a Minimal Game Scene
+
+Create one empty Phaser scene.
+
+Display a simple background and a basic text label.
+
+Verify that the scene loads correctly.
+
+Do not implement movement.
+
+---
+
+# PHASE 3 — ROLE SELECTION
+
+## Prompt 3.1 — Create the Start Menu
+
+Create a simple start menu with:
+- Knowledge Realms title.
+- Enter as User.
+- Enter as Super Admin.
+
+Use HTML/CSS or an appropriate UI layer.
+
+Do not implement authentication.
+
+## Prompt 3.2 — Implement Role Selection State
+
+Implement a simple local application role state.
+
+Support:
+- User.
+- Super Admin.
+
+Do not treat this as secure authentication.
+
+Do not implement the admin dashboard yet.
+
+## Prompt 3.3 — Add Role-Based Screen Navigation
+
+Connect the role selection to separate User and Super Admin entry screens.
+
+Only implement navigation.
+
+Do not implement either screen's full functionality.
+
+---
+
+# PHASE 4 — PLAYER DATA AND CHARACTER PROGRESSION
+
+## Prompt 4.1 — Create the Player Data Model
+
+Create a typed player data model.
+
+Include:
+- Player ID.
+- Character name.
+- Character level.
+- Character EXP.
+- HP.
+- MP.
+- Attack.
+- Defense.
+- Intelligence.
+- Critical rate.
+- Movement speed.
+
+Do not implement leveling.
+
+## Prompt 4.2 — Create Character EXP Configuration
+
+Create a separate configuration file for character EXP requirements.
+
+Do not hardcode EXP requirements inside player logic.
+
+Use provisional values that can be changed later.
+
+## Prompt 4.3 — Implement EXP Awarding
+
+Create a player progression service that awards character EXP.
+
+Do not connect it to monsters yet.
+
+Ensure EXP cannot become negative through invalid input.
+
+## Prompt 4.4 — Implement Character Level Calculation
+
+Implement character leveling based on accumulated EXP.
+
+Handle:
+- Multiple level-ups from a large EXP award.
+- Maximum level configuration.
+- Level-up notifications or returned events.
+
+Do not implement stat balancing yet.
+
+## Prompt 4.5 — Implement Level-Based Stat Growth
+
+Create a configurable stat growth system.
+
+Keep stat formulas separate from the player data model.
+
+Do not implement equipment bonuses.
+
+---
+
+# PHASE 5 — WORLD AND BEGINNERS VILLAGE
+
+## Prompt 5.1 — Create the Map Data Model
+
+Create a typed map data model.
+
+Support:
+- Map ID.
+- Map name.
+- Recommended level.
+- Map boundaries.
+- Connections.
+- Entry requirements.
+- Zone type.
+
+Do not create the actual map yet.
+
+## Prompt 5.2 — Create Beginners Village Data
+
+Create a data definition for Beginners Village.
+
+Set its recommended level range to 1–10.
+
+Include placeholders for its buildings and hunting areas.
+
+Do not create graphics.
+
+## Prompt 5.3 — Create the Beginners Village Scene
+
+Create a basic Phaser scene representing Beginners Village.
+
+Use placeholder graphics.
+
+Do not implement player movement.
+
+## Prompt 5.4 — Create the Player Character Placeholder
+
+Add a basic player placeholder to the village.
+
+The player should have a visible position and sprite representation.
+
+Do not implement movement.
+
+## Prompt 5.5 — Implement Basic Player Movement
+
+Implement basic directional movement.
+
+Support keyboard input.
+
+Keep movement logic separate from player progression.
+
+## Prompt 5.6 — Implement Map Collision
+
+Add basic collision with map boundaries and obstacles.
+
+Do not implement combat or NPC interaction.
+
+## Prompt 5.7 — Implement Zone Transitions
+
+Create a basic zone transition system.
+
+Allow movement between configured map areas.
+
+Do not implement higher-level warning behavior yet.
+
+---
+
+# PHASE 6 — BUILDINGS AND SUBJECT ZONES
+
+## Prompt 6.1 — Create Building Data
+
+Create a typed building data model.
+
+Support:
+- Building ID.
+- Name.
+- Description.
+- Subject.
+- Associated hunting zones.
+- Interaction position.
+
+Do not implement interaction.
+
+## Prompt 6.2 — Add Beginners Village Buildings
+
+Add:
+- Mathematics Building.
+- General Knowledge Library.
+- Science Laboratory.
+- Technology Workshop.
+
+Use data definitions.
+
+Do not create detailed artwork.
+
+## Prompt 6.3 — Implement Building Interaction
+
+Allow the player to interact with a nearby building.
+
+Display the building name and available action.
+
+Do not implement hunting yet.
+
+## Prompt 6.4 — Create Hunting Zone Data
+
+Create a typed hunting zone model.
+
+Include:
+- Zone ID.
+- Subject.
+- Educational tier.
+- Recommended level.
+- Monster spawn configuration.
+
+Do not implement monster spawning.
+
+## Prompt 6.5 — Connect Buildings to Hunting Zones
+
+Connect each subject building to its corresponding hunting zone.
+
+Allow the player to enter the zone.
+
+Do not implement monsters yet.
+
+## Prompt 6.6 — Implement Risk-Based Zone Access
+
+Allow players to enter higher-level zones.
+
+Before entering an area significantly above the player's level:
+- Display its recommended level.
+- Display a danger warning.
+- Require the player to confirm entry.
+
+Do not block access solely because the player is underleveled.
+
+---
+
+# PHASE 7 — MONSTER SYSTEM
+
+## Prompt 7.1 — Create the Monster Data Model
+
+Create a typed monster model.
+
+Include:
+- ID.
+- Name.
+- Level.
+- HP.
+- Attack.
+- Defense.
+- Subject.
+- EXP reward.
+- Gold reward.
+- Drop configuration.
+
+Do not implement combat.
+
+## Prompt 7.2 — Create Monster Configuration Data
+
+Create sample monster data for Beginners Village.
+
+Include a few Mathematics, General Knowledge, Science, and Technology monsters.
+
+Use placeholder values.
+
+Do not implement AI.
+
+## Prompt 7.3 — Implement Monster Spawning
+
+Implement monster spawning based on hunting zone configuration.
+
+Do not implement combat.
+
+## Prompt 7.4 — Implement Monster Movement
+
+Give monsters simple movement or idle behavior.
+
+Do not implement attacks.
+
+## Prompt 7.5 — Implement Monster Interaction
+
+Allow the player to interact with or initiate a fight against a monster.
+
+Return the selected monster's data to the game system.
+
+Do not implement the battle itself.
+
+---
+
+# PHASE 8 — QUESTION DATABASE AND QUESTION RULES
+
+## Prompt 8.1 — Create the Question Schema
+
+Create a typed question schema.
+
+Support:
+- ID.
+- Educational tier.
+- Subject.
+- Topic.
+- Difficulty.
+- Question type.
+- Question text.
+- Choices.
+- Correct answer.
+- Accepted answers.
+- Expected answer.
+- Explanation.
+- Time limit.
+- Base mastery EXP.
+- Tags.
+- Status.
+
+Do not implement question retrieval.
+
+## Prompt 8.2 — Create Question Validation
+
+Create validation rules for each question type.
+
+Multiple Choice must have valid choices and a valid correct choice.
+
+Identification must have an accepted answer.
+
+Essay must have an expected answer or grading reference.
+
+Do not implement the admin interface.
+
+## Prompt 8.3 — Create Question Folder Structure
+
+Create separate JSON files for educational tiers and subjects.
+
+Include sample question files.
+
+Do not create hundreds of questions.
+
+## Prompt 8.4 — Load Bundled Question Data
+
+Implement a question data loader that reads the bundled question files.
+
+Do not implement battle question selection.
+
+## Prompt 8.5 — Implement Question Filtering
+
+Create a question repository that can filter by:
+- Subject.
+- Educational tier.
+- Difficulty.
+- Question type.
+- Publication status.
+
+Do not implement random selection.
+
+## Prompt 8.6 — Implement Random Question Selection
+
+Create a question selection service.
+
+It should:
+- Select questions from a valid filtered pool.
+- Avoid repeating questions in the same battle when possible.
+- Handle insufficient question pools.
+- Return a clear error or fallback result when no suitable question exists.
+
+Do not connect it to combat.
+
+---
+
+# PHASE 9 — ADMIN QUESTION MANAGEMENT
+
+## Prompt 9.1 — Create Admin Dashboard Layout
+
+Create a simple Super Admin dashboard.
+
+Include navigation for:
+- Add Question.
+- Question List.
+
+Do not implement question operations yet.
+
+## Prompt 9.2 — Create the Add Question Form
+
+Create a form supporting:
+- Educational tier.
+- Subject.
+- Topic.
+- Difficulty.
+- Question type.
+- Question text.
+- Choices where applicable.
+- Correct answer.
+- Explanation.
+- Time limit.
+- Mastery EXP.
+
+Do not save questions yet.
+
+## Prompt 9.3 — Connect Question Validation to the Form
+
+Use the existing question validation service.
+
+Display clear validation errors.
+
+Do not implement persistence yet.
+
+## Prompt 9.4 — Implement Local Question Storage
+
+Create the IndexedDB storage foundation for questions.
+
+Keep storage operations separate from the admin interface.
+
+## Prompt 9.5 — Implement Adding Questions
+
+Connect the form to the question repository and IndexedDB.
+
+Ensure new questions receive unique IDs.
+
+## Prompt 9.6 — Implement the Question List
+
+Display saved and bundled questions.
+
+Show important identifying information:
+- Question.
+- Subject.
+- Educational tier.
+- Difficulty.
+- Type.
+- Status.
+
+## Prompt 9.7 — Implement Question Search and Filters
+
+Add filtering by subject, educational tier, difficulty, type, and status.
+
+## Prompt 9.8 — Implement Question Editing
+
+Allow Super Admin to edit an existing question.
+
+Validate changes before saving.
+
+## Prompt 9.9 — Implement Question Deletion
+
+Allow Super Admin to delete questions.
+
+Use a tombstone or equivalent mechanism for bundled questions so deleted questions do not reappear after refresh.
+
+Ask for confirmation before deletion.
+
+## Prompt 9.10 — Implement JSON Import
+
+Allow Super Admin to import a question JSON file.
+
+Validate the entire import before committing it.
+
+Prevent duplicate IDs and explain validation errors.
+
+## Prompt 9.11 — Implement JSON Export
+
+Allow Super Admin to export the question database as JSON.
+
+Ensure the exported file can be imported again.
+
+---
+
+# PHASE 10 — QUESTION INTERFACE
+
+## Prompt 10.1 — Create the Question Display Component
+
+Create a reusable question display component.
+
+Support:
+- Question text.
+- Choices.
+- Identification input.
+- Timer display.
+
+Do not connect it to battles.
+
+## Prompt 10.2 — Implement Multiple Choice Input
+
+Allow the player to select one answer.
+
+Prevent multiple submissions for the same question.
+
+## Prompt 10.3 — Implement Identification Input
+
+Allow the player to submit a text answer.
+
+Use normalized comparison and accepted-answer aliases.
+
+## Prompt 10.4 — Implement the Question Timer
+
+Create a configurable countdown timer.
+
+Ensure timeout is emitted only once.
+
+Do not implement damage.
+
+## Prompt 10.5 — Implement Answer Evaluation
+
+Create a question evaluation service.
+
+Support:
+- Multiple Choice.
+- Identification.
+
+Do not put evaluation rules inside the UI component.
+
+## Prompt 10.6 — Display Answer Feedback
+
+Display correct or incorrect feedback and the explanation.
+
+Do not implement mastery rewards.
+
+---
+
+# PHASE 11 — PVE DIFFICULTY ENGINE
+
+## Prompt 11.1 — Create Educational Tier Configuration
+
+Create a configurable educational tier mapping.
+
+Use:
+- Elementary: 1–10.
+- Junior High School: 11–50.
+- Senior High School: 51–100.
+- College: 101–150.
+- Master's: 151–200.
+- PhD: 201–250.
+- Specialization: 251+.
+
+Keep all ranges editable through configuration.
+
+## Prompt 11.2 — Implement Monster Baseline Tier Selection
+
+Create a service that determines the monster's baseline educational tier from its level.
+
+Do not apply player-versus-monster level differences yet.
+
+## Prompt 11.3 — Implement Level Difference Calculation
+
+Create a service that calculates the difference between player level and monster level.
+
+Return a clearly defined positive or negative result.
+
+Do not select questions yet.
+
+## Prompt 11.4 — Implement Higher-Level Monster Difficulty Shifts
+
+Implement the configurable higher-level monster challenge table.
+
+Use the difference between monster level and player level.
+
+The intended behavior is:
+- Small level differences produce a modest increase.
+- Medium differences produce a significant increase.
+- Large differences can jump one or more educational tiers.
+
+Keep the algorithm independent from the question repository.
+
+Include unit tests for boundary values.
+
+## Prompt 11.5 — Implement Lower-Level Monster Difficulty Adjustments
+
+When the monster is substantially below the player's level, adjust the question difficulty downward relative to the monster's baseline.
+
+Do not allow easy monsters to produce excessive mastery rewards.
+
+## Prompt 11.6 — Implement Final PvE Question Profile
+
+Create one service that combines:
+- Monster baseline tier.
+- Monster-versus-player level difference.
+- Difficulty adjustment.
+- Available question tiers.
+- Subject.
+
+Return a final question-selection profile.
+
+Do not implement the battle yet.
+
+## Prompt 11.7 — Test PvE Difficulty Scenarios
+
+Write unit tests for cases including:
+- Same-level player and monster.
+- Monster slightly above player.
+- Monster moderately above player.
+- Monster far above player.
+- Monster below player.
+- Player near an educational tier boundary.
+- Insufficient questions in the requested tier.
+
+Do not change approved rules merely to make tests pass.
+
+---
+
+# PHASE 12 — BATTLE SYSTEM
+
+## Prompt 12.1 — Create Battle State
+
+Create a battle state model.
+
+Include:
+- Player.
+- Monster.
+- Current HP.
+- Total question count.
+- Questions answered.
+- Correct answers.
+- Incorrect answers.
+- Battle status.
+
+Do not implement battle logic yet.
+
+## Prompt 12.2 — Implement Random Question Count
+
+Implement randomized question count based on monster HP and configurable monster categories.
+
+The count must be determined once when the battle starts.
+
+Use the configured minimum and maximum for each category.
+
+Do not reroll after every question.
+
+## Prompt 12.3 — Implement Battle Question Selection
+
+Connect the battle question selector to the PvE question profile.
+
+Select questions matching:
+- Subject.
+- Final educational tier.
+- Difficulty.
+- Supported combat question type.
+
+Avoid repeating questions within the same battle when possible.
+
+## Prompt 12.4 — Implement Battle Initialization
+
+Create a battle initialization service.
+
+It should:
+- Receive the player and monster.
+- Calculate the PvE question profile.
+- Determine the random question count.
+- Select the question set.
+- Initialize battle state.
+
+Do not implement damage yet.
+
+## Prompt 12.5 — Implement Player Attack Calculation
+
+Create a damage calculation service.
+
+Use player Attack, monster Defense, and configurable modifiers.
+
+Do not connect it to the visual interface.
+
+## Prompt 12.6 — Implement Monster Damage Calculation
+
+Create the monster attack calculation.
+
+Use monster Attack and player Defense.
+
+Do not connect it to the question UI yet.
+
+## Prompt 12.7 — Implement Correct Answer Consequence
+
+When a correct answer is submitted:
+- Evaluate the answer.
+- Calculate player damage.
+- Reduce monster HP.
+- Record the result.
+
+Do not award mastery EXP yet.
+
+## Prompt 12.8 — Implement Incorrect Answer Consequence
+
+When an incorrect answer is submitted or the timer expires:
+- Calculate monster damage.
+- Reduce player HP.
+- Consume the question attempt.
+- Record the result.
+
+Do not allow the same question to damage the player multiple times.
+
+## Prompt 12.9 — Implement Battle Progression
+
+Advance to the next question after each completed attempt.
+
+End the battle when:
+- The monster is defeated.
+- The player is defeated.
+- The configured question set is exhausted.
+
+Define a consistent outcome for a surviving monster when all questions are exhausted. Use a configurable result rather than silently treating it as victory.
+
+## Prompt 12.10 — Implement Victory and Defeat
+
+Create battle result handling.
+
+Support:
+- Victory.
+- Defeat.
+- Remaining HP.
+- Correct and incorrect answer counts.
+
+Do not implement inventory drops yet.
+
+## Prompt 12.11 — Create the Battle UI
+
+Create a battle interface showing:
+- Player HP.
+- Monster HP.
+- Monster name and level.
+- Current question.
+- Timer.
+- Answer controls.
+- Battle progress.
+
+Connect it to the existing battle services.
+
+Do not move combat calculations into the UI.
+
+## Prompt 12.12 — Connect Monster Interaction to Battle
+
+Connect the hunting zone's monster interaction to the battle system.
+
+Verify that a player can initiate and complete a basic battle.
+
+---
+
+# PHASE 13 — KNOWLEDGE MASTERY
+
+## Prompt 13.1 — Create the Mastery Data Model
+
+Create an independent mastery record for each subject.
+
+Include:
+- Subject ID.
+- Mastery level.
+- Mastery EXP.
+- Total correct answers.
+- Total attempted answers.
+
+Do not implement progression yet.
+
+## Prompt 13.2 — Create Mastery EXP Configuration
+
+Create configurable values for:
+- Base EXP.
+- Difficulty multipliers.
+- Educational tier multipliers.
+- Speed bonuses.
+- Performance bonuses.
+
+Do not hardcode these values inside battle logic.
+
+## Prompt 13.3 — Implement Mastery EXP Calculation
+
+Implement the performance-based mastery EXP formula.
+
+Correct answers receive mastery EXP based on difficulty and performance.
+
+Incorrect answers receive zero mastery EXP initially.
+
+Ensure the same question attempt cannot award EXP more than once.
+
+## Prompt 13.4 — Implement Mastery Level Progression
+
+Implement mastery leveling independently from character leveling.
+
+Do not use character EXP requirements.
+
+## Prompt 13.5 — Connect Mastery to Battles
+
+Award mastery EXP for eligible correct combat answers.
+
+Use the question's subject.
+
+Do not award mastery EXP to unrelated subjects.
+
+## Prompt 13.6 — Create Mastery Display
+
+Create a UI showing each subject's:
+- Mastery level.
+- Mastery EXP.
+- Progress toward the next level.
+
+Do not implement mastery-based skill bonuses yet.
+
+---
+
+# PHASE 14 — MONSTER REWARDS
+
+## Prompt 14.1 — Create Reward Data Models
+
+Create models for:
+- Gold.
+- EXP.
+- Items.
+- Drop chance.
+
+Do not implement reward distribution yet.
+
+## Prompt 14.2 — Implement Monster EXP Rewards
+
+Connect monster victory to character EXP.
+
+Do not award EXP on defeat.
+
+## Prompt 14.3 — Implement Gold Rewards
+
+Award Gold on monster victory.
+
+Keep Gold rewards configurable by monster.
+
+## Prompt 14.4 — Implement Item Drop Tables
+
+Create configurable monster drop tables.
+
+Do not implement the inventory interface.
+
+## Prompt 14.5 — Implement Quest Progress Events
+
+Emit events when monsters are defeated.
+
+Keep the event system independent from the quest UI.
+
+---
+
+# PHASE 15 — INVENTORY AND EQUIPMENT
+
+## Prompt 15.1 — Create Item Data Model
+
+Create a typed item model.
+
+Support:
+- Item ID.
+- Name.
+- Description.
+- Type.
+- Rarity.
+- Value.
+- Stack limit.
+
+## Prompt 15.2 — Create Inventory State
+
+Create the player's inventory data structure.
+
+Do not implement the UI.
+
+## Prompt 15.3 — Implement Item Pickup
+
+Allow eligible battle drops to enter the inventory.
+
+Handle stack limits.
+
+## Prompt 15.4 — Create Inventory UI
+
+Display inventory items.
+
+Do not implement equipment bonuses.
+
+## Prompt 15.5 — Create Equipment Slots
+
+Create equipment slot support for:
+- Weapon.
+- Armor.
+- Helmet.
+- Accessories.
+
+## Prompt 15.6 — Implement Equipping Items
+
+Allow the player to equip and unequip compatible items.
+
+Do not implement crafting.
+
+## Prompt 15.7 — Implement Equipment Stat Bonuses
+
+Apply equipment bonuses through a separate stat calculation service.
+
+Do not modify the base player statistics directly.
+
+---
+
+# PHASE 16 — QUESTS AND NPCS
+
+## Prompt 16.1 — Create NPC Data Model
+
+Create a typed NPC model.
+
+Support name, dialogue, location, and interaction type.
+
+## Prompt 16.2 — Create NPC Interaction
+
+Allow the player to interact with NPCs.
+
+Display simple dialogue.
+
+## Prompt 16.3 — Create Quest Data Model
+
+Create a quest model.
+
+Support:
+- Quest ID.
+- Name.
+- Description.
+- Objectives.
+- Rewards.
+- Requirements.
+- Status.
+
+## Prompt 16.4 — Implement Quest Acceptance
+
+Allow the player to accept available quests.
+
+## Prompt 16.5 — Implement Quest Progress Tracking
+
+Connect quest objectives to game events.
+
+## Prompt 16.6 — Implement Quest Completion
+
+Allow completed quests to award configured rewards.
+
+---
+
+# PHASE 17 — LOCAL STORAGE AND OFFLINE SUPPORT
+
+## Prompt 17.1 — Create Storage Service Interface
+
+Create a storage interface for player data, progression, settings, and game state.
+
+Do not implement a cloud backend.
+
+## Prompt 17.2 — Implement Player Data Persistence
+
+Save and load player data using IndexedDB.
+
+## Prompt 17.3 — Implement Mastery Persistence
+
+Save and load mastery records.
+
+## Prompt 17.4 — Implement Inventory Persistence
+
+Save and load inventory and equipment.
+
+## Prompt 17.5 — Implement Game Settings Persistence
+
+Save user settings such as audio and control preferences.
+
+## Prompt 17.6 — Add Save Data Validation
+
+Validate loaded data.
+
+Handle missing, corrupted, or outdated save data gracefully.
+
+## Prompt 17.7 — Add Basic Offline Support
+
+Configure the application for offline loading.
+
+Do not implement online multiplayer.
+
+---
+
+# PHASE 18 — ECONOMY
+
+## Prompt 18.1 — Create Currency System
+
+Create a Gold balance service.
+
+Support adding and spending Gold.
+
+Prevent invalid negative balances.
+
+## Prompt 18.2 — Create Shop Data Model
+
+Create a shop and item pricing model.
+
+## Prompt 18.3 — Implement Buying Items
+
+Allow players to buy items using Gold.
+
+## Prompt 18.4 — Implement Selling Items
+
+Allow players to sell eligible inventory items.
+
+## Prompt 18.5 — Create Bank Data Model
+
+Create the initial bank account data structure.
+
+Do not implement interest yet.
+
+## Prompt 18.6 — Implement Basic Savings
+
+Implement a fictional in-game savings account.
+
+Use configurable interest rules.
+
+## Prompt 18.7 — Create Investment Data Model
+
+Create configurable investment opportunities.
+
+Do not implement advanced economic simulation.
+
+## Prompt 18.8 — Create Business Data Model
+
+Create a player-owned business model.
+
+Include:
+- Business type.
+- Employees.
+- Production.
+- Expenses.
+- Revenue.
+
+Do not implement a full business simulation yet.
+
+---
+
+# PHASE 19 — ARENA AND FUTURE PVP PREPARATION
+
+## Prompt 19.1 — Create Arena Data Model
+
+Create an arena model for future PvP and tournament systems.
+
+Do not implement online multiplayer.
+
+## Prompt 19.2 — Create PvP Difficulty Rules Document
+
+Create docs/PVP_RULES.md.
+
+Document the approved reverse-difficulty rule:
+
+Lower-level player = harder questions.  
+Higher-level player = easier questions.
+
+Explain the difference between PvP and PvE difficulty selection.
+
+Do not invent a final PvP damage or ranking formula.
+
+## Prompt 19.3 — Create PvP Difficulty Service Interface
+
+Create an interface for future PvP difficulty calculation.
+
+Do not connect it to the PvE difficulty service.
+
+Do not implement network functionality.
+
+---
+
+# PHASE 20 — TESTING AND INTEGRATION
+
+## Prompt 20.1 — Audit the Module Boundaries
+
+Review the project architecture.
+
+Identify accidental dependencies between rendering, combat, questions, mastery, admin, and storage.
+
+Do not rewrite modules unnecessarily.
+
+## Prompt 20.2 — Test Question Validation
+
+Write tests for valid and invalid question records.
+
+## Prompt 20.3 — Test Question Selection
+
+Test subject, tier, difficulty, and question-type filtering.
+
+## Prompt 20.4 — Test PvE Difficulty
+
+Test the higher-level monster difficulty jump and lower-level monster adjustment.
+
+## Prompt 20.5 — Test Random Battle Question Count
+
+Verify that:
+- Counts are within configured ranges.
+- Counts are determined once per battle.
+- Different battles can receive different counts.
+- Invalid configurations are handled safely.
+
+## Prompt 20.6 — Test Combat Outcomes
+
+Test:
+- Correct answer.
+- Incorrect answer.
+- Timeout.
+- Player victory.
+- Player defeat.
+- Exhausted question set.
+
+## Prompt 20.7 — Test Character and Mastery Progression
+
+Verify that:
+- Character EXP is separate.
+- Mastery EXP is separate.
+- Correct answers award the correct subject's mastery EXP.
+- Incorrect answers award no mastery EXP initially.
+- Duplicate awards are prevented.
+
+## Prompt 20.8 — Test Admin Persistence
+
+Verify that:
+- Added questions remain after reload.
+- Edited questions remain after reload.
+- Deleted bundled questions do not reappear.
+- Imports are validated.
+- Exports can be imported again.
+
+## Prompt 20.9 — Run Full Build
+
+Run the project's full type checking and production build.
+
+Fix errors introduced by integration.
+
+Do not remove features to make the build pass.
+
+## Prompt 20.10 — Playable Prototype Review
+
+Review the entire playable loop:
+
+Start Menu → User → Beginners Village → Subject Building → Hunting Zone → Monster → Random Questions → Battle → Rewards → Character EXP and Mastery EXP.
+
+Identify any incomplete transitions.
+
+Do not add unrelated features.
+
+---
+
+# PART IV — IMPORTANT DEVELOPMENT RULES FOR CLAUDE CODE
+
+## 23. How to Work With This Prompt Package
+
+Use this process for every prompt:
+
+1. Open the project in Claude Code.
+2. Submit exactly one prompt.
+3. Allow Claude to inspect and modify the project.
+4. Review the files changed.
+5. Review the test report.
+6. Run the application when appropriate.
+7. Commit the completed task to Git.
+8. Submit the next prompt.
+
+If Claude encounters a bug:
+- Do not immediately ask it to rewrite the whole project.
+- Ask it to inspect the relevant module.
+- Ask it to identify the cause.
+- Ask it to fix only the affected files.
+- Require relevant tests.
+
+## 24. Bug-Fixing Prompt Template
+
+Use this whenever a feature breaks.
+
+Inspect the current implementation of [MODULE OR FEATURE].
+
+The following problem occurs:
+
+[DESCRIBE THE BUG]
+
+Do not rewrite the entire project.
+
+First:
+1. Identify the responsible module.
+2. Trace the relevant data flow.
+3. Determine the root cause.
+4. Explain the proposed fix.
+
+Then make the smallest reasonable change.
+
+Do not modify unrelated modules.
+
+Run the relevant tests and report:
+- Root cause.
+- Files changed.
+- Fix implemented.
+- Tests performed.
+- Remaining limitations.
+
+Stop after fixing this issue.
+
+## 25. Code Review Prompt Template
+
+Review the implementation of [MODULE].
+
+Check:
+- Correctness.
+- Type safety.
+- Separation of responsibilities.
+- Unnecessary dependencies.
+- Duplicate logic.
+- Error handling.
+- Test coverage.
+- Performance concerns.
+
+Do not modify files yet.
+
+Report only actionable issues and their affected files.
+
+## 26. Documentation Update Prompt Template
+
+Review the changes made to [MODULE OR FEATURE].
+
+Update only the relevant documentation files.
+
+Keep the documentation consistent with the actual implementation.
+
+Do not change code.
+
+Report which documentation files were updated.
+
+---
+
+# PART V — FINAL APPROVED MECHANICS SUMMARY
+
+| Mechanic | Final Decision |
+|---|---|
+| Starting map | Beginners Village |
+| Starting level range | 1–10 |
+| Character EXP | Primarily monster grinding |
+| Knowledge mastery | Separate per subject |
+| Mastery EXP | Performance-based |
+| PvE educational tier | Based on monster level |
+| Higher-level monster | Can cause major difficulty jumps |
+| Lower-level monster | Questions adjust easier |
+| Battle question count | Random, based on monster HP/category |
+| Correct answer | Player attacks |
+| Incorrect answer | Player receives damage |
+| Timeout | Same initial penalty as incorrect answer |
+| Zone access | Higher-level zones allowed with danger warning |
+| Combat question types | Multiple Choice and Identification by default |
+| Essay questions | Quests, research, and special activities by default |
+| Admin access | User / Super Admin role selector |
+| Question storage | JSON + IndexedDB |
+| Initial game mode | Offline-first single-player |
+| PvP | Future feature |
+| PvP difficulty | Reverse difficulty |
+| Initial game engine | Phaser 3 |
+| Language | TypeScript |
+| Build tool | Vite |
+
+## Final Design Principle
+
+Knowledge Realms must remain modular and expandable.
+
+The core experience should be completed before advanced systems are introduced.
+
+Every new feature should integrate with existing modules through clearly defined interfaces.
+
+The educational question system, character progression, knowledge mastery, battle system, and administrative tools must remain independently testable.
+
+The goal of the first release is not to build the entire fantasy world immediately. It is to create one polished, working gameplay loop that can serve as the foundation for the rest of Knowledge Realms.
