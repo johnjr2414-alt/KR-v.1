@@ -30,6 +30,14 @@ export {
   type QuestionSelectionResult,
 } from './retrieval/QuestionSelector';
 
+export {
+  DifficultyEngine,
+  difficultyEngine,
+  type LevelDifferenceResult,
+  type PvEQuestionProfile,
+  type DifficultyFallbackEvent,
+} from './retrieval/DifficultyEngine';
+
 // ─── Evaluation ─────────────────────────────────────────────────────────────
 export {
   AnswerEvaluator,
