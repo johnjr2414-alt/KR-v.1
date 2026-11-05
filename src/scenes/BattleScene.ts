@@ -7,8 +7,10 @@ import { loadBundledQuestions } from '../questions/retrieval/QuestionLoader';
 import { BattleOverlay } from '../ui/battle-overlay/BattleOverlay';
 import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
+import { inventoryManager } from '../inventory/InventoryManager';
 import '../ui/battle-overlay/battle-overlay.css';
 import '../ui/question-modal/question-modal.css';
+import '../ui/inventory-panel/inventory-panel.css';
 
 export interface BattleSceneInitData {
   monster: MonsterDefinition;
@@ -208,6 +210,14 @@ export class BattleScene extends Phaser.Scene {
 
   private finishBattle(): void {
     const summary = this.session.getEndSummary();
+
+    // Automatically deposit victory drops into inventory
+    if (summary.droppedItems && summary.droppedItems.length > 0) {
+      for (const drop of summary.droppedItems) {
+        inventoryManager.addItem(drop.itemId, drop.quantity);
+      }
+    }
+
     this.overlay.showEndSummary(summary);
   }
 

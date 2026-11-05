@@ -20,7 +20,7 @@ const MOCK_MONSTER: MonsterDefinition = {
   category: MonsterCategory.Weak,
   baseExp: 10,
   baseGold: 5,
-  dropConfig: { drops: [], bonusGoldMin: 0, bonusGoldMax: 1 },
+  dropConfig: { drops: [], bonusGoldMin: 0, bonusGoldMax: 0 },
   spriteColor: 0x22c55e,
   detectionRadius: 60,
 };
