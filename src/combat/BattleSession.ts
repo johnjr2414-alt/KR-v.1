@@ -19,6 +19,8 @@ import {
 import { AnswerOutcome, BattleOutcome, type CombatTurnResult } from '../core/types/combat';
 import { DamageCalculator, damageCalculator } from './DamageCalculator';
 import type { AnswerEvaluationResult } from '../questions/evaluation/AnswerEvaluator';
+import { MasteryManager, masteryManager } from '../mastery/MasteryManager';
+import type { MasteryGainResult } from '../core/types/mastery';
 
 export interface BattleSessionOptions {
   player: PlayerData;
@@ -26,6 +28,7 @@ export interface BattleSessionOptions {
   repository: QuestionRepository;
   difficultyEngine?: DifficultyEngine;
   damageCalculator?: DamageCalculator;
+  masteryManager?: MasteryManager;
   questionCountConfig?: Record<string, QuestionCountConfig>;
   /** Optional deterministic question count override (for tests) */
   fixedQuestionCount?: number;
@@ -43,10 +46,14 @@ export interface BattleSessionOptions {
 export class BattleSession {
   private state: BattleState;
   private readonly damageCalc: DamageCalculator;
+  private readonly mastery: MasteryManager;
+  private currentStreak = 0;
+  private pendingMasteryGains: MasteryGainResult[] = [];
 
   constructor(options: BattleSessionOptions) {
     const diffEngine = options.difficultyEngine || difficultyEngine;
     this.damageCalc = options.damageCalculator || damageCalculator;
+    this.mastery = options.masteryManager || masteryManager;
 
     // 1. Calculate PvE difficulty profile
     const profile: PvEQuestionProfile = diffEngine.createQuestionProfile(
@@ -119,19 +126,23 @@ export class BattleSession {
   processAnswer(
     evaluation: AnswerEvaluationResult,
     forceCrit?: boolean,
+    timeRemaining = 0,
   ): CombatTurnResult {
     if (this.state.status !== BattleStatus.AwaitingAnswer && this.state.status !== BattleStatus.Ready) {
       throw new Error(`Cannot process answer in state: ${this.state.status}`);
     }
 
+    const currentQuestion = this.getCurrentQuestion();
     const questionIndex = this.state.currentQuestionIndex + 1;
     let damageToMonster = 0;
     let damageToPlayer = 0;
     let isCritical = false;
 
-    // 1. Correct Answer: Player strikes Monster
+    // 1. Correct Answer: Player strikes Monster & awards Mastery EXP
     if (evaluation.outcome === AnswerOutcome.Correct) {
       this.state.correctAnswersCount++;
+      this.currentStreak++;
+
       const dmgResult = this.damageCalc.calculatePlayerDamage(
         this.state.player.attack,
         this.state.monster.defense,
@@ -142,15 +153,38 @@ export class BattleSession {
       isCritical = dmgResult.isCritical;
 
       this.state.monsterCurrentHp = Math.max(0, this.state.monsterCurrentHp - damageToMonster);
+
+      if (currentQuestion) {
+        const { gainResult } = this.mastery.processAnswerAttempt({
+          question: currentQuestion,
+          isCorrect: true,
+          timeRemaining,
+          timeLimit: currentQuestion.timeLimit,
+          currentStreak: this.currentStreak,
+          rewardMultiplier: this.state.profile.rewardMultiplier,
+        });
+        this.pendingMasteryGains.push(gainResult);
+      }
     } else {
       // 2. Incorrect / Timeout: Monster strikes Player (DAMAGE-PLAYER rule)
       this.state.incorrectAnswersCount++;
+      this.currentStreak = 0; // Streak reset
       damageToPlayer = this.damageCalc.calculateMonsterDamage(
         this.state.monster.attack,
         this.state.player.defense,
       );
 
       this.state.playerCurrentHp = Math.max(0, this.state.playerCurrentHp - damageToPlayer);
+
+      if (currentQuestion) {
+        this.mastery.processAnswerAttempt({
+          question: currentQuestion,
+          isCorrect: false,
+          timeRemaining: 0,
+          timeLimit: currentQuestion.timeLimit,
+          currentStreak: 0,
+        });
+      }
     }
 
     const turnResult: CombatTurnResult = {
@@ -217,6 +251,7 @@ export class BattleSession {
       remainingMonsterHp: this.state.monsterCurrentHp,
       expEarned,
       goldEarned,
+      masteryGains: [...this.pendingMasteryGains],
     };
   }
 }

@@ -52,4 +52,5 @@ export interface BattleEndSummary {
   remainingMonsterHp: number;
   expEarned: number;
   goldEarned: number;
+  masteryGains: Array<{ subject: string; expGained: number; leveledUp: boolean; newLevel: number }>;
 }

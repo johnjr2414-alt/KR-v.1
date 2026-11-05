@@ -1,0 +1,121 @@
+/* ── Mastery Panel Overlay ── */
+
+.mastery-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1250;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(10, 10, 18, 0.88);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #e2e8f0;
+}
+
+.mastery-card {
+  width: 90%;
+  max-width: 680px;
+  background: #141824;
+  border: 1px solid #2d3748;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mastery-header {
+  padding: 16px 24px;
+  background: #1a202c;
+  border-bottom: 1px solid #2d3748;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mastery-header__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #c080ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mastery-header__close {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.mastery-header__close:hover {
+  color: #fff;
+}
+
+.mastery-body {
+  padding: 20px 24px;
+  max-height: 480px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mastery-item {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mastery-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mastery-item__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f7fafc;
+  text-transform: capitalize;
+}
+
+.mastery-item__level {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f6ad55;
+  background: #2d3748;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+
+.mastery-item__bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #2d3748;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mastery-item__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #9f7aea, #805ad5);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.mastery-item__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a0aec0;
+}

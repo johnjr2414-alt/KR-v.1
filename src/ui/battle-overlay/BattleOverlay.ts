@@ -124,6 +124,11 @@ export class BattleOverlay {
           <div>Incorrect Answers: <strong>${summary.incorrectAnswers}</strong></div>
           ${summary.expEarned > 0 ? `<div>Combat EXP: <strong>+${summary.expEarned}</strong></div>` : ''}
           ${summary.goldEarned > 0 ? `<div>Gold: <strong>+${summary.goldEarned}</strong></div>` : ''}
+          ${
+            summary.masteryGains && summary.masteryGains.length > 0
+              ? `<div>Mastery Gains: <strong>${summary.masteryGains.map((g) => `+${g.expGained} ${g.subject}${g.leveledUp ? ` (Lv UP -> ${g.newLevel}!)` : ''}`).join(', ')}</strong></div>`
+              : ''
+          }
         </div>
         <button class="battle-summary-modal__btn" id="summary-ok-btn">Return</button>
       </div>
