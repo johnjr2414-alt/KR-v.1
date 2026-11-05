@@ -6,7 +6,12 @@ import type { BuildingDefinition } from '../world/BuildingDefinition';
 import { calculateMovementVelocity, DEFAULT_MOVE_SPEED } from '../player';
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import { ZoneWarningModal } from '../ui/zone-warning';
+import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
+import { getNPCsForMap } from '../quests/NPCRegistry';
+import type { NPCDefinition } from '../quests/NPCTypes';
+import { questManager } from '../quests/QuestManager';
 import '../ui/zone-warning/zone-warning.css';
+import '../ui/npc-dialogue/npc-dialogue.css';
 
 // Landmark IDs that correspond to interactable buildings
 const BUILDING_LANDMARK_IDS = new Set([
@@ -48,6 +53,9 @@ export class VillageScene extends Phaser.Scene {
   // Interaction prompt
   private interactPrompt!: Phaser.GameObjects.Text;
   private nearbyBuilding: BuildingDefinition | null = null;
+  private nearbyNPC: NPCDefinition | null = null;
+  private activeDialogueModal: NPCDialogueModal | null = null;
+  private npcs: NPCDefinition[] = [];
 
   constructor() {
     super({ key: VillageScene.KEY });
@@ -92,6 +100,9 @@ export class VillageScene extends Phaser.Scene {
     // ── Zone exits (village gate to hunting ground) ──────────────
     this.createExits();
 
+    // ── NPCs ────────────────────────────────────────────────────
+    this.createNPCs();
+
     // ── Input ────────────────────────────────────────────────────
     this.inputAdapter = new PhaserInputAdapter(this);
 
@@ -127,13 +138,76 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player?.body) return;
+    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal) return;
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
     this.player.setVelocity(velocity.vx, velocity.vy);
 
     this.checkBuildingProximity();
+    this.checkNPCProximity();
+  }
+
+  // ── NPC creation ───────────────────────────────────────────────
+  private createNPCs(): void {
+    this.npcs = getNPCsForMap(this.mapData.id);
+
+    for (const npc of this.npcs) {
+      const { x, y } = npc.position;
+
+      // NPC visual representation
+      const gfx = this.add.graphics();
+      gfx.fillStyle(npc.spriteColor, 1);
+      gfx.fillCircle(x, y, 16);
+      gfx.lineStyle(2, 0xffffff, 0.8);
+      gfx.strokeCircle(x, y, 16);
+
+      // NPC name and quest indicator
+      const questStatus = questManager.getNpcQuestStatus(npc.id, PLAYER_TEST_LEVEL);
+      const icon = questStatus === 'ready-turn-in' ? '❓ ' : questStatus === 'available' ? '❗ ' : '';
+
+      this.add.text(x, y - 28, `${icon}${npc.name}`, {
+        fontFamily: 'Arial',
+        fontSize: '11px',
+        color: questStatus !== 'none' ? '#f6e05e' : '#ffffff',
+        backgroundColor: '#00000088',
+        padding: { x: 4, y: 2 },
+      }).setOrigin(0.5);
+    }
+  }
+
+  // ── NPC proximity check ─────────────────────────────────────────
+  private checkNPCProximity(): void {
+    const px = this.player.x;
+    const py = this.player.y;
+
+    let nearest: NPCDefinition | null = null;
+    let nearestDist = Infinity;
+
+    for (const npc of this.npcs) {
+      const dx = Math.abs(px - npc.position.x);
+      const dy = Math.abs(py - npc.position.y);
+      const chebyshev = Math.max(dx, dy);
+
+      if (chebyshev < INTERACTION_RANGE && chebyshev < nearestDist) {
+        nearestDist = chebyshev;
+        nearest = npc;
+      }
+    }
+
+    this.nearbyNPC = nearest;
+
+    if (nearest && !this.nearbyBuilding) {
+      const questStatus = questManager.getNpcQuestStatus(nearest.id, PLAYER_TEST_LEVEL);
+      const promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
+
+      this.interactPrompt
+        .setText(`💬 ${nearest.name}\n[SPACE / ENTER] ${promptTitle}`)
+        .setPosition(this.player.x - 60, this.player.y - 80)
+        .setVisible(true);
+    } else if (!nearest && !this.nearbyBuilding) {
+      this.interactPrompt.setVisible(false);
+    }
   }
 
   // ── Landmark creation ──────────────────────────────────────────
@@ -260,7 +334,15 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
-    if (this.isTransitioning || !this.nearbyBuilding) return;
+    if (this.isTransitioning) return;
+
+    // Prioritize NPC interaction if close to an NPC
+    if (this.nearbyNPC) {
+      this.openNPCDialogue(this.nearbyNPC);
+      return;
+    }
+
+    if (!this.nearbyBuilding) return;
 
     const building = this.nearbyBuilding;
     const zoneId = building.huntingZoneIds[0];
@@ -270,6 +352,25 @@ export class VillageScene extends Phaser.Scene {
     if (!huntingZone) return;
 
     this.initiateZoneEntry(zoneId, { x: 300, y: 300 }, zoneId, building.name);
+  }
+
+  private openNPCDialogue(npc: NPCDefinition): void {
+    if (this.activeDialogueModal) return;
+
+    this.player.setVelocity(0, 0);
+    this.activeDialogueModal = new NPCDialogueModal({
+      npc,
+      questManager,
+      playerLevel: PLAYER_TEST_LEVEL,
+      onClose: () => {
+        this.activeDialogueModal = null;
+      },
+      onQuestUpdate: () => {
+        // Refresh scene NPC icons if needed
+      },
+    });
+
+    this.activeDialogueModal.show();
   }
 
   // ── Zone entry with optional risk warning ─────────────────────
@@ -324,5 +425,7 @@ export class VillageScene extends Phaser.Scene {
 
   shutdown(): void {
     this.zoneWarningModal.destroy();
+    this.activeDialogueModal?.destroy();
+    this.activeDialogueModal = null;
   }
 }
