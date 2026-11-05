@@ -14,3 +14,5 @@ export {
   BattleSession,
   type BattleSessionOptions,
 } from './BattleSession';
+
+export * from './rewards';

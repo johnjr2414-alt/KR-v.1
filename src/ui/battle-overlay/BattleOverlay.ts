@@ -125,6 +125,11 @@ export class BattleOverlay {
           ${summary.expEarned > 0 ? `<div>Combat EXP: <strong>+${summary.expEarned}</strong></div>` : ''}
           ${summary.goldEarned > 0 ? `<div>Gold: <strong>+${summary.goldEarned}</strong></div>` : ''}
           ${
+            summary.droppedItems && summary.droppedItems.length > 0
+              ? `<div>Items Dropped: <strong>${summary.droppedItems.map((d) => `${d.itemId} x${d.quantity}`).join(', ')}</strong></div>`
+              : ''
+          }
+          ${
             summary.masteryGains && summary.masteryGains.length > 0
               ? `<div>Mastery Gains: <strong>${summary.masteryGains.map((g) => `+${g.expGained} ${g.subject}${g.leveledUp ? ` (Lv UP -> ${g.newLevel}!)` : ''}`).join(', ')}</strong></div>`
               : ''

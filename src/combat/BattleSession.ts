@@ -22,6 +22,9 @@ import type { AnswerEvaluationResult } from '../questions/evaluation/AnswerEvalu
 import { MasteryManager, masteryManager } from '../mastery/MasteryManager';
 import type { MasteryGainResult } from '../core/types/mastery';
 
+import { RewardCalculator, rewardCalculator } from './rewards/RewardCalculator';
+import type { MonsterRewardResult } from './rewards/RewardTypes';
+
 export interface BattleSessionOptions {
   player: PlayerData;
   monster: MonsterDefinition;
@@ -29,6 +32,7 @@ export interface BattleSessionOptions {
   difficultyEngine?: DifficultyEngine;
   damageCalculator?: DamageCalculator;
   masteryManager?: MasteryManager;
+  rewardCalculator?: RewardCalculator;
   questionCountConfig?: Record<string, QuestionCountConfig>;
   /** Optional deterministic question count override (for tests) */
   fixedQuestionCount?: number;
@@ -47,13 +51,16 @@ export class BattleSession {
   private state: BattleState;
   private readonly damageCalc: DamageCalculator;
   private readonly mastery: MasteryManager;
+  private readonly rewards: RewardCalculator;
   private currentStreak = 0;
   private pendingMasteryGains: MasteryGainResult[] = [];
+  private victoryRewards: MonsterRewardResult | null = null;
 
   constructor(options: BattleSessionOptions) {
     const diffEngine = options.difficultyEngine || difficultyEngine;
     this.damageCalc = options.damageCalculator || damageCalculator;
     this.mastery = options.masteryManager || masteryManager;
+    this.rewards = options.rewardCalculator || rewardCalculator;
 
     // 1. Calculate PvE difficulty profile
     const profile: PvEQuestionProfile = diffEngine.createQuestionProfile(
@@ -202,6 +209,12 @@ export class BattleSession {
     // 3. Check termination conditions
     if (this.state.monsterCurrentHp <= 0) {
       this.state.status = BattleStatus.Victory;
+      // Calculate and emit victory rewards
+      this.victoryRewards = this.rewards.calculateRewards(
+        this.state.monster,
+        this.state.profile.rewardMultiplier,
+      );
+      this.rewards.emitMonsterDefeated(this.state.monster, this.victoryRewards);
     } else if (this.state.playerCurrentHp <= 0) {
       this.state.status = BattleStatus.Defeat;
     } else {
@@ -236,8 +249,9 @@ export class BattleSession {
         : BattleOutcome.Defeat;
 
     const isVictory = this.state.status === BattleStatus.Victory;
-    const expEarned = isVictory ? this.state.monster.baseExp : 0;
-    const goldEarned = isVictory ? this.state.monster.baseGold : 0;
+    const expEarned = isVictory && this.victoryRewards ? this.victoryRewards.combatExp : 0;
+    const goldEarned = isVictory && this.victoryRewards ? this.victoryRewards.totalGold : 0;
+    const droppedItems = isVictory && this.victoryRewards ? this.victoryRewards.droppedItems : [];
 
     return {
       outcome,
@@ -251,6 +265,7 @@ export class BattleSession {
       remainingMonsterHp: this.state.monsterCurrentHp,
       expEarned,
       goldEarned,
+      droppedItems,
       masteryGains: [...this.pendingMasteryGains],
     };
   }
