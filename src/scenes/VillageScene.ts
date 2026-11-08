@@ -18,6 +18,7 @@ import {
   evaluatePlayerAnimationState,
   type Direction,
 } from './animations';
+import { InteractionGuard, isWithinInteractionRange } from './interactions';
 import '../ui/zone-warning/zone-warning.css';
 import '../ui/npc-dialogue/npc-dialogue.css';
 
@@ -64,6 +65,7 @@ export class VillageScene extends Phaser.Scene {
   private npcs: NPCDefinition[] = [];
   private explorationUI: ExplorationUIManager | null = null;
   private currentDirection: Direction = 'down';
+  private interactionGuard = new InteractionGuard({ cooldownMs: 300 });
 
   constructor() {
     super({ key: VillageScene.KEY });
@@ -72,6 +74,7 @@ export class VillageScene extends Phaser.Scene {
   init(data?: SceneTransitionData): void {
     this.isTransitioning = false;
     this.nearbyBuilding = null;
+    this.interactionGuard.reset();
     if (data?.spawnPosition) {
       this.spawnPosition = { ...data.spawnPosition };
     } else {
@@ -80,6 +83,9 @@ export class VillageScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Smooth camera fade in on scene entry
+    this.cameras.main.fadeIn(250, 10, 10, 15);
+
     // Auto-save on entering village
     void playerSessionManager.saveSession();
 
@@ -344,12 +350,14 @@ export class VillageScene extends Phaser.Scene {
       const bld = BUILDING_REGISTRY[bldId];
       if (!bld) continue;
 
-      const dx = Math.abs(px - landmark.position.x);
-      const dy = Math.abs(py - landmark.position.y);
-      const chebyshev = Math.max(dx, dy);
-      if (chebyshev < INTERACTION_RANGE && chebyshev < nearestDist) {
-        nearestDist = chebyshev;
-        nearest = bld;
+      if (isWithinInteractionRange(px, py, landmark.position.x, landmark.position.y, INTERACTION_RANGE)) {
+        const dx = Math.abs(px - landmark.position.x);
+        const dy = Math.abs(py - landmark.position.y);
+        const chebyshev = Math.max(dx, dy);
+        if (chebyshev < nearestDist) {
+          nearestDist = chebyshev;
+          nearest = bld;
+        }
       }
     }
 
@@ -368,6 +376,7 @@ export class VillageScene extends Phaser.Scene {
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
     if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) return;
+    if (!this.interactionGuard.canTrigger()) return;
 
     // Prioritize NPC interaction if close to an NPC
     if (this.nearbyNPC) {
@@ -476,12 +485,13 @@ export class VillageScene extends Phaser.Scene {
   private doTransition(targetMapId: string, entryPosition: { x: number; y: number }): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.interactionGuard.setLocked(true);
     this.player.setVelocity(0, 0);
 
     // Save on scene exit
     void playerSessionManager.saveSession();
 
-    this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+    this.cameras.main.fade(250, 10, 10, 15, false, (_camera: unknown, progress: number) => {
       if (progress === 1) {
         this.scene.start('HuntingScene', { spawnPosition: entryPosition, zoneId: targetMapId });
       }

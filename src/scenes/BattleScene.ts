@@ -60,6 +60,8 @@ export class BattleScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
+    this.cameras.main.fadeIn(250, 0, 0, 0);
+
     // Arena background
     const bg = this.add.graphics();
     bg.fillStyle(0x0f172a, 1);
@@ -299,8 +301,12 @@ export class BattleScene extends Phaser.Scene {
     // Auto-save before transitioning out of battle
     void playerSessionManager.saveSession();
 
-    this.scene.start(this.returnSceneKey, {
-      spawnPosition: this.returnPosition,
+    this.cameras.main.fade(250, 0, 0, 0, false, (_camera: unknown, progress: number) => {
+      if (progress === 1) {
+        this.scene.start(this.returnSceneKey, {
+          spawnPosition: this.returnPosition,
+        });
+      }
     });
   }
 

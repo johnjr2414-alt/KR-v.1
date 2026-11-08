@@ -13,6 +13,7 @@ import {
   evaluatePlayerAnimationState,
   type Direction,
 } from './animations';
+import { InteractionGuard } from './interactions';
 
 /** Number of monsters to spawn per zone visit. */
 const MONSTERS_PER_ZONE = 6;
@@ -48,6 +49,7 @@ export class HuntingScene extends Phaser.Scene {
   private interactKey!: Phaser.Input.Keyboard.Key;
   private explorationUI: ExplorationUIManager | null = null;
   private currentDirection: Direction = 'down';
+  private interactionGuard = new InteractionGuard({ cooldownMs: 300 });
 
   constructor() {
     super({ key: HuntingScene.KEY });
@@ -56,6 +58,7 @@ export class HuntingScene extends Phaser.Scene {
   init(data?: SceneTransitionData & { zoneId?: string }): void {
     this.isTransitioning = false;
     this.nearbyMonster = null;
+    this.interactionGuard.reset();
     this.monsterSprites = [];
 
     if (data?.spawnPosition) {
@@ -75,6 +78,9 @@ export class HuntingScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Smooth camera fade in on scene entry
+    this.cameras.main.fadeIn(250, 10, 10, 15);
+
     // Save on entering hunting zone
     void playerSessionManager.saveSession();
 
@@ -166,7 +172,7 @@ export class HuntingScene extends Phaser.Scene {
 
     this.updateMonsterProximity();
 
-    if (this.nearbyMonster && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+    if (this.nearbyMonster && Phaser.Input.Keyboard.JustDown(this.interactKey) && this.interactionGuard.canTrigger()) {
       this.initiateEncounter(this.nearbyMonster.getDefinition());
     }
   }
@@ -231,6 +237,7 @@ export class HuntingScene extends Phaser.Scene {
   private initiateEncounter(monster: MonsterDefinition): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.interactionGuard.setLocked(true);
 
     this.player.setVelocity(0, 0);
 
@@ -330,6 +337,7 @@ export class HuntingScene extends Phaser.Scene {
   ): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.interactionGuard.setLocked(true);
 
     // Clean up monster tween/state before leaving
     for (const sprite of this.monsterSprites) {
@@ -342,7 +350,7 @@ export class HuntingScene extends Phaser.Scene {
     // Save session on exit
     void playerSessionManager.saveSession();
 
-    this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+    this.cameras.main.fade(250, 10, 10, 15, false, (_camera: unknown, progress: number) => {
       if (progress === 1) {
         if (targetMapId === 'beginners-village') {
           this.scene.start('VillageScene', { spawnPosition: entryPosition });

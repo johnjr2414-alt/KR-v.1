@@ -471,6 +471,40 @@ Turn results computed authoritatively by `BattleSession` are transformed via a p
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 22.3 — Scene Transitions and Interaction Feedback
+
+**Date**: 2026-11-08  
+**Phase**: 22.3  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 22.3 enhances scene navigation, camera fades, portal transitions, and interaction reliability across `VillageScene`, `HuntingScene`, and `BattleScene`.
+
+Camera transitions now feature uniform bidirectional fades (250ms duration) to eliminate scene popping. An interaction throttling and state locking guard (`InteractionGuard`) protects against rapid repeated portal activations, button spamming, and duplicate modal openings. Proximity evaluations were standardized using pure Chebyshev distance calculations (`isWithinInteractionRange`) to ensure consistent prompt visibility without overlapping artifacts.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/scenes/interactions/InteractionGuard.ts`: Headless pure helper managing interaction throttling (`cooldownMs`), manual transition locking (`setLocked`), and Chebyshev proximity thresholding (`isWithinInteractionRange`).
+  - `src/scenes/interactions/index.ts`: Barrel export.
+  - `tests/scenes/phase22_3_scene_transitions.test.ts`: Automated unit tests for cooldown throttling, manual locking, and distance calculations.
+  - `docs/PHASE_22_3_IMPLEMENTATION_REPORT.md`: Standalone report.
+- **Modified Files**:
+  - `src/scenes/VillageScene.ts`: Added camera `fadeIn(250)` on scene creation, integrated `InteractionGuard` to throttle interactions and lock input during scene fades, and standardized transition timing.
+  - `src/scenes/HuntingScene.ts`: Added camera `fadeIn(250)`, guarded monster encounter initiation with `interactionGuard.canTrigger()`, locked input on zone exits, and ensured active monster tweens are cleanly defeated on transition.
+  - `src/scenes/BattleScene.ts`: Added camera `fadeIn(250)` on battle start and smooth fade-out on battle exit.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master implementation report updated with Phase 22.3.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **42 test files passed** (410 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 
