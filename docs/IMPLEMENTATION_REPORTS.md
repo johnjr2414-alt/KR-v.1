@@ -569,6 +569,43 @@ Styles were added in `accessibility.css` to enforce keyboard focus rings (`:focu
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 23.1 — Skill Domain Model
+
+**Date**: 2026-11-08  
+**Phase**: 23.1  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 23.1 implements the typed, data-driven foundation for active and passive knowledge skills without building presentation UI yet.
+
+A domain model was established in `src/skills/` specifying skill classifications (`active` vs `passive`), safe typed effect primitives (`damage-boost-percent`, `flat-attack-bonus`, `crit-rate-bonus`, `shield-absorption`, etc.), unlock prerequisites (subject mastery level, character level, prerequisite skill IDs, and gold costs), and per-level scaling parameters. A headless `SkillManager` handles player skill unlocks, hotbar assignments, validation, and backward-compatible persistence into `PlayerSessionManager` and `SaveData`.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/skills/SkillTypes.ts`: Type contracts defining `SkillDefinition`, `SkillType`, `SkillEffect`, `SkillEffectType`, `SkillUnlockRequirements`, `PlayerSkillRecord`, and `PlayerSkillsState`.
+  - `src/skills/SkillValidator.ts`: Pure schema validator for skill configurations and effect definitions.
+  - `src/skills/SkillRegistry.ts`: Static registry of baseline subject skills.
+  - `src/skills/SkillManager.ts`: Headless manager coordinating unlock evaluations, prerequisite checking, gold deductions, skill upgrades, hotbar equipping, and state loading.
+  - `src/skills/index.ts`: Barrel export.
+  - `tests/skills/phase23_1_skill_model.test.ts`: Automated unit test suite verifying schema validation, prerequisite enforcement, mastery gates, gold deductions, hotbar equipping, and save state hydration.
+  - `docs/PHASE_23_1_IMPLEMENTATION_REPORT.md`: Standalone report.
+- **Modified Files**:
+  - `src/storage/StorageTypes.ts`: Extended `SaveData` schema with optional backward-compatible `skills?: PlayerSkillsState`.
+  - `src/storage/SaveDataValidator.ts`: Added validation for candidate `skills` state.
+  - `src/player/PlayerSessionManager.ts`: Added `skills: SkillManager` property, hydrated skills during session load, included `skills: this.skills.getState()` in save snapshots.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master report updated with Phase 23.1.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **45 test files passed** (423 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 

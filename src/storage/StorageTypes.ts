@@ -3,6 +3,7 @@ import type { SubjectId } from '../core/types/education';
 import type { MasteryRecord } from '../core/types/mastery';
 import type { InventoryState } from '../inventory/ItemTypes';
 import type { PlayerQuestRecord } from '../quests/QuestTypes';
+import type { PlayerSkillsState } from '../skills/SkillTypes';
 
 export interface GameSettings {
   masterVolume: number; // 0.0 - 1.0
@@ -30,6 +31,7 @@ export interface SaveData {
   mastery: Record<SubjectId, MasteryRecord>;
   inventory: InventoryState;
   quests: PlayerQuestRecord[];
+  skills?: PlayerSkillsState;
   currency?: {
     gold: number;
   };

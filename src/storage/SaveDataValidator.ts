@@ -137,6 +137,15 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
   // Validate Settings
   const sanitizedSettings = validateGameSettings(candidate.settings);
 
+  // Validate Skills (Phase 23.1: optional backward-compatible skills object)
+  const sanitizedSkills =
+    candidate.skills && typeof candidate.skills === 'object'
+      ? {
+          unlockedSkills: candidate.skills.unlockedSkills && typeof candidate.skills.unlockedSkills === 'object' ? { ...candidate.skills.unlockedSkills } : {},
+          equippedActiveSkillIds: Array.isArray(candidate.skills.equippedActiveSkillIds) ? [...candidate.skills.equippedActiveSkillIds] : [],
+        }
+      : undefined;
+
   return {
     isValid: true,
     errors: [],
@@ -147,6 +156,7 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
       mastery: sanitizedMastery,
       inventory: sanitizedInventory,
       quests: sanitizedQuests,
+      skills: sanitizedSkills,
       currency: {
         gold: sanitizedGold,
       },
