@@ -68,6 +68,7 @@ export interface InventorySlot {
   slotIndex: number;
   itemId: string;
   quantity: number;
+  enhancementLevel?: number;
 }
 
 /**
@@ -77,4 +78,5 @@ export interface InventoryState {
   capacity: number;
   slots: (InventorySlot | null)[];
   equipped: Partial<Record<EquipmentSlot, string>>; // Maps slot -> itemId
+  equippedEnhancements?: Partial<Record<EquipmentSlot, number>>; // Maps slot -> enhancement level
 }

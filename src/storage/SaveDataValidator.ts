@@ -138,13 +138,22 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
       candidate.inventory && Array.isArray(candidate.inventory.slots)
         ? candidate.inventory.slots.map((s, idx) =>
             s && typeof s === 'object' && typeof s.itemId === 'string'
-              ? { slotIndex: idx, itemId: s.itemId, quantity: Math.max(1, s.quantity || 1) }
+              ? {
+                  slotIndex: idx,
+                  itemId: s.itemId,
+                  quantity: Math.max(1, s.quantity || 1),
+                  enhancementLevel: typeof s.enhancementLevel === 'number' && s.enhancementLevel > 0 ? Math.floor(s.enhancementLevel) : 0,
+                }
               : null,
           )
         : Array.from({ length: DEFAULT_INVENTORY_CAPACITY }, () => null),
     equipped:
       candidate.inventory && typeof candidate.inventory.equipped === 'object'
         ? { ...candidate.inventory.equipped }
+        : {},
+    equippedEnhancements:
+      candidate.inventory && typeof candidate.inventory.equippedEnhancements === 'object'
+        ? { ...candidate.inventory.equippedEnhancements }
         : {},
   };
 

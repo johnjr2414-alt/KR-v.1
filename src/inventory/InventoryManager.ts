@@ -4,6 +4,10 @@ import {
   type ItemDefinition,
 } from './ItemTypes';
 import { getItemDefinition } from './ItemRegistry';
+import {
+  previewEnhancement,
+  type EnhancementResult,
+} from './EnhancementService';
 
 export interface AddItemResult {
   success: boolean;
@@ -37,12 +41,14 @@ export class InventoryManager {
         capacity: initialState.capacity,
         slots: initialState.slots.map((s) => (s ? { ...s } : null)),
         equipped: { ...initialState.equipped },
+        equippedEnhancements: { ...(initialState.equippedEnhancements || {}) },
       };
     } else {
       this.state = {
         capacity: DEFAULT_INVENTORY_CAPACITY,
         slots: Array.from({ length: DEFAULT_INVENTORY_CAPACITY }, () => null),
         equipped: {},
+        equippedEnhancements: {},
       };
     }
   }
@@ -55,6 +61,7 @@ export class InventoryManager {
       capacity: this.state.capacity,
       slots: this.state.slots.map((s) => (s ? { ...s } : null)),
       equipped: { ...this.state.equipped },
+      equippedEnhancements: { ...(this.state.equippedEnhancements || {}) },
     };
   }
 
@@ -66,6 +73,7 @@ export class InventoryManager {
       capacity: newState.capacity || DEFAULT_INVENTORY_CAPACITY,
       slots: newState.slots.map((s) => (s ? { ...s } : null)),
       equipped: { ...newState.equipped },
+      equippedEnhancements: { ...(newState.equippedEnhancements || {}) },
     };
   }
 
@@ -180,9 +188,15 @@ export class InventoryManager {
 
     const targetSlot = itemDef.equipmentSlot;
     const previouslyEquippedId = this.state.equipped[targetSlot];
+    const previousEnhancementLevel = this.state.equippedEnhancements?.[targetSlot] ?? 0;
+    const itemEnhancementLevel = slot.enhancementLevel ?? 0;
 
-    // Equip the item
+    // Equip the item and track enhancement
     this.state.equipped[targetSlot] = slot.itemId;
+    if (!this.state.equippedEnhancements) {
+      this.state.equippedEnhancements = {};
+    }
+    this.state.equippedEnhancements[targetSlot] = itemEnhancementLevel;
 
     // Remove 1 quantity of the item from the inventory slot
     if (slot.quantity > 1) {
@@ -198,6 +212,7 @@ export class InventoryManager {
           slotIndex,
           itemId: previouslyEquippedId,
           quantity: 1,
+          enhancementLevel: previousEnhancementLevel,
         };
       } else {
         this.state.slots[slotIndex] = null;
@@ -217,14 +232,142 @@ export class InventoryManager {
     const equippedItemId = this.state.equipped[slot];
     if (!equippedItemId) return false;
 
-    // Check if there is room in inventory
-    const addRes = this.addItem(equippedItemId, 1);
-    if (!addRes.success) {
+    const enhancementLevel = this.state.equippedEnhancements?.[slot] ?? 0;
+
+    // Find an empty slot to place the unequipped item with its enhancement level
+    const emptyIndex = this.state.slots.findIndex((s) => s === null);
+    if (emptyIndex === -1) {
       return false; // Inventory full
     }
 
+    this.state.slots[emptyIndex] = {
+      slotIndex: emptyIndex,
+      itemId: equippedItemId,
+      quantity: 1,
+      enhancementLevel,
+    };
+
     delete this.state.equipped[slot];
+    if (this.state.equippedEnhancements) {
+      delete this.state.equippedEnhancements[slot];
+    }
     return true;
+  }
+
+  /**
+   * Enhances an equipment item located in an inventory slot or equipped slot.
+   */
+  enhanceItem(
+    target: { type: 'slot'; slotIndex: number } | { type: 'equipped'; slot: EquipmentSlot },
+    goldAvailable: number,
+    deductGold: (amount: number) => boolean,
+  ): EnhancementResult {
+    let itemId: string | undefined;
+    let currentLevel = 0;
+
+    if (target.type === 'slot') {
+      const slot = this.state.slots[target.slotIndex];
+      if (!slot) {
+        return { success: false, error: 'Inventory slot is empty', previousLevel: 0, newLevel: 0, goldSpent: 0, effectiveStats: {} };
+      }
+      itemId = slot.itemId;
+      currentLevel = slot.enhancementLevel ?? 0;
+    } else {
+      itemId = this.state.equipped[target.slot];
+      if (!itemId) {
+        return { success: false, error: 'Equipment slot is empty', previousLevel: 0, newLevel: 0, goldSpent: 0, effectiveStats: {} };
+      }
+      currentLevel = this.state.equippedEnhancements?.[target.slot] ?? 0;
+    }
+
+    const preview = previewEnhancement(
+      itemId,
+      currentLevel,
+      goldAvailable,
+      (matId) => this.getItemCount(matId),
+    );
+
+    if (!preview.canEnhance) {
+      return {
+        success: false,
+        error: preview.reasons.join(' '),
+        previousLevel: currentLevel,
+        newLevel: currentLevel,
+        goldSpent: 0,
+        effectiveStats: preview.currentStats,
+      };
+    }
+
+    // Atomic transaction: Deduct material first (if needed)
+    if (preview.requiredMaterial) {
+      const removed = this.removeItem(
+        preview.requiredMaterial.itemId,
+        preview.requiredMaterial.quantityRequired,
+      );
+      if (!removed) {
+        return {
+          success: false,
+          error: 'Failed to consume required enhancement materials',
+          previousLevel: currentLevel,
+          newLevel: currentLevel,
+          goldSpent: 0,
+          effectiveStats: preview.currentStats,
+        };
+      }
+    }
+
+    // Deduct Gold
+    const goldDeducted = deductGold(preview.goldCost);
+    if (!goldDeducted) {
+      // Rollback materials if gold deduction failed
+      if (preview.requiredMaterial) {
+        this.addItem(preview.requiredMaterial.itemId, preview.requiredMaterial.quantityRequired);
+      }
+      return {
+        success: false,
+        error: 'Failed to deduct gold for enhancement',
+        previousLevel: currentLevel,
+        newLevel: currentLevel,
+        goldSpent: 0,
+        effectiveStats: preview.currentStats,
+      };
+    }
+
+    // Apply upgrade
+    const newLevel = preview.targetLevel;
+    if (target.type === 'slot') {
+      const slot = this.state.slots[target.slotIndex]!;
+      slot.enhancementLevel = newLevel;
+    } else {
+      if (!this.state.equippedEnhancements) {
+        this.state.equippedEnhancements = {};
+      }
+      this.state.equippedEnhancements[target.slot] = newLevel;
+    }
+
+    return {
+      success: true,
+      previousLevel: currentLevel,
+      newLevel,
+      goldSpent: preview.goldCost,
+      materialSpent: preview.requiredMaterial
+        ? { itemId: preview.requiredMaterial.itemId, quantity: preview.requiredMaterial.quantityRequired }
+        : undefined,
+      effectiveStats: preview.nextStats,
+    };
+  }
+
+  /**
+   * Helper to retrieve total quantity of an item across all slots.
+   */
+  getItemCount(itemId: string): number {
+    let count = 0;
+    for (const slot of this.state.slots) {
+      if (slot && slot.itemId === itemId) {
+        count += slot.quantity;
+      }
+    }
+    return count;
   }
 
   /**

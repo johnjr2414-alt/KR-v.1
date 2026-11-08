@@ -905,6 +905,36 @@ Phase 24.2 implements domain-level item validation, equipment slot and level res
 - **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
 - **Production Build (`npm run build`)**: Succeeded cleanly.
 
+---
+
+# Phase 24.3 — Equipment Enhancement
+
+**Date**: 2026-11-08  
+**Phase**: 24.3 (Handbook Section: RPG Progression Depth)  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 24.3 implements a deterministic, non-exploitative equipment enhancement system (+1 to +10). Upgrades increase base stats by 10% per level (with flat minimum guarantees), consume Gold via an exponential curve, require tiered materials, and execute atomically with rollback protection. Equipment stat calculations reflect enhancement levels dynamically.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/config/enhancementConfig.ts`: Balance configuration and material tiers.
+  - `src/inventory/EnhancementService.ts`: Pure calculations, cost formulas, and preview generation.
+  - `tests/inventory/phase24_3_enhancement.test.ts`: 11 automated unit tests.
+  - `docs/PHASE_24_3_IMPLEMENTATION_REPORT.md`: Comprehensive phase report.
+- **Modified Files**:
+  - `src/inventory/ItemTypes.ts`: Added `enhancementLevel` to slots and `equippedEnhancements` to state.
+  - `src/inventory/InventoryManager.ts`: Added `enhanceItem()`, material tracking, and equip/unequip preservation.
+  - `src/inventory/EquipmentStatCalculator.ts`: Factored enhancement levels into stat bonuses.
+  - `src/inventory/index.ts`: Barrel exports.
+  - `src/storage/SaveDataValidator.ts`: Added sanitization and defaults.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm test`)**: 54 test files passed (505 passed, 0 failures).
+- **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
+- **Production Build (`npm run build`)**: Succeeded cleanly.
+
+
 
 
 
