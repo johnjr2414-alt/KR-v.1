@@ -1,6 +1,7 @@
 import type { BattleSession } from '../../combat/BattleSession';
 import type { BattleEndSummary } from '../../combat/BattleState';
 import { BattleStatus } from '../../combat/BattleState';
+import { calculateHpPercentage, type CombatFeedbackDescriptor } from '../../combat/CombatFeedbackMapper';
 
 export interface BattleOverlayOptions {
   session: BattleSession;
@@ -76,13 +77,13 @@ export class BattleOverlay {
     const roundInfo = this.container.querySelector<HTMLElement>('#battle-round-info');
 
     if (playerBar) {
-      playerBar.style.width = `${Math.max(0, (state.playerCurrentHp / state.playerMaxHp) * 100)}%`;
+      playerBar.style.width = `${calculateHpPercentage(state.playerCurrentHp, state.playerMaxHp)}%`;
     }
     if (playerText) {
       playerText.textContent = `${state.playerCurrentHp} / ${state.playerMaxHp} HP`;
     }
     if (monsterBar) {
-      monsterBar.style.width = `${Math.max(0, (state.monsterCurrentHp / state.monsterMaxHp) * 100)}%`;
+      monsterBar.style.width = `${calculateHpPercentage(state.monsterCurrentHp, state.monsterMaxHp)}%`;
     }
     if (monsterText) {
       monsterText.textContent = `${state.monsterCurrentHp} / ${state.monsterMaxHp} HP`;
@@ -92,10 +93,19 @@ export class BattleOverlay {
     }
   }
 
-  showLogMessage(message: string): void {
+  showLogMessage(message: string, feedback?: CombatFeedbackDescriptor): void {
     const logEl = this.container?.querySelector<HTMLElement>('#battle-log');
     if (!logEl) return;
-    logEl.textContent = message;
+
+    if (feedback) {
+      logEl.innerHTML = `
+        <span class="combat-badge ${feedback.badgeClass}">${feedback.statusBadge}</span>
+        <div style="margin-top: 4px;">${this.escape(message)}</div>
+      `;
+    } else {
+      logEl.textContent = message;
+    }
+
     logEl.style.display = 'block';
   }
 

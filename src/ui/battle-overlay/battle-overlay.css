@@ -171,3 +171,52 @@
 .battle-summary-modal__btn:hover {
   background: #2563eb;
 }
+
+/* ── Combat Feedback Badges & Floating Numbers ── */
+
+.combat-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.combat-badge--correct {
+  background: #059669;
+  color: #ecfdf5;
+  border: 1px solid #34d399;
+}
+
+.combat-badge--critical {
+  background: #dc2626;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+  animation: badge-pulse 0.4s ease-in-out infinite alternate;
+}
+
+.combat-badge--incorrect {
+  background: #b91c1c;
+  color: #fef2f2;
+  border: 1px solid #ef4444;
+}
+
+.combat-badge--timeout {
+  background: #d97706;
+  color: #fffbeb;
+  border: 1px solid #fbbf24;
+}
+
+@keyframes badge-pulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+

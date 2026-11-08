@@ -6,6 +6,7 @@ import { sharedQuestionRepository } from '../questions';
 import { BattleOverlay } from '../ui/battle-overlay/BattleOverlay';
 import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
+import { formatCombatFeedback, type CombatFeedbackDescriptor } from '../combat/CombatFeedbackMapper';
 import '../ui/battle-overlay/battle-overlay.css';
 import '../ui/question-modal/question-modal.css';
 import '../ui/inventory-panel/inventory-panel.css';
@@ -149,11 +150,14 @@ export class BattleScene extends Phaser.Scene {
         const turnResult = this.session.processAnswer(evaluation);
         this.overlay.update();
 
-        // Animate combat hit
+        // Animate combat hit with authoritative feedback
+        const showDamageNumbers = playerSessionManager.getSettings().showDamageNumbers;
+        const feedback = formatCombatFeedback(turnResult, showDamageNumbers);
+
         if (turnResult.outcome === AnswerOutcome.Correct) {
-          this.animatePlayerAttack(turnResult.damageToMonster, turnResult.isCritical);
+          this.animatePlayerAttack(feedback);
         } else {
-          this.animateMonsterAttack(turnResult.damageToPlayer);
+          this.animateMonsterAttack(feedback);
         }
       },
       onClose: () => {
@@ -171,7 +175,11 @@ export class BattleScene extends Phaser.Scene {
     this.activeQuestionModal.show();
   }
 
-  private animatePlayerAttack(damage: number, isCritical: boolean): void {
+  private animatePlayerAttack(feedback: CombatFeedbackDescriptor): void {
+    const { width, height } = this.scale;
+    const monsterX = width / 2 + 140;
+    const monsterY = height / 2 + 20;
+
     this.tweens.add({
       targets: this.playerVisual,
       x: '+=30',
@@ -188,11 +196,15 @@ export class BattleScene extends Phaser.Scene {
       repeat: 2,
     });
 
-    const critText = isCritical ? ' CRIT!' : '';
-    this.overlay.showLogMessage(`⚔️ Player deals ${damage} damage!${critText}`);
+    this.spawnFloatingText(monsterX, monsterY, feedback.displayText, feedback.isCritical ? '#ef4444' : '#fbbf24', feedback.isCritical);
+    this.overlay.showLogMessage(`⚔️ Player deals ${feedback.damageAmount} damage!`, feedback);
   }
 
-  private animateMonsterAttack(damage: number): void {
+  private animateMonsterAttack(feedback: CombatFeedbackDescriptor): void {
+    const { width, height } = this.scale;
+    const playerX = width / 2 - 140;
+    const playerY = height / 2 + 20;
+
     this.tweens.add({
       targets: this.monsterVisual,
       x: '-=30',
@@ -209,7 +221,31 @@ export class BattleScene extends Phaser.Scene {
       repeat: 2,
     });
 
-    this.overlay.showLogMessage(`💥 Monster retaliates for ${damage} damage!`);
+    this.spawnFloatingText(playerX, playerY, feedback.displayText, '#f87171', false);
+    this.overlay.showLogMessage(`💥 Monster retaliates for ${feedback.damageAmount} damage!`, feedback);
+  }
+
+  private spawnFloatingText(x: number, y: number, text: string, color: string, isCritical = false): void {
+    const fontSize = isCritical ? '24px' : '18px';
+    const floating = this.add.text(x, y, text, {
+      fontFamily: 'Arial',
+      fontSize,
+      fontStyle: isCritical ? 'bold' : 'normal',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: floating,
+      y: y - 45,
+      alpha: 0,
+      duration: 900,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        floating.destroy();
+      },
+    });
   }
 
   private finishBattle(): void {
