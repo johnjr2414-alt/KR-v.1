@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BEGINNERS_HUNTING_GROUND, HUNTING_ZONE_REGISTRY, type MapDefinition } from '../world';
 import type { HuntingZoneDefinition } from '../world/HuntingZoneDefinition';
-import { calculateMovementVelocity, DEFAULT_MOVE_SPEED } from '../player';
+import { calculateMovementVelocity, DEFAULT_MOVE_SPEED, playerSessionManager } from '../player';
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import type { SceneTransitionData } from './VillageScene';
 import { monsterSpawner } from '../monsters';
@@ -67,6 +67,9 @@ export class HuntingScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Save on entering hunting zone
+    void playerSessionManager.saveSession();
+
     const { width, height } = this.mapData.bounds;
 
     this.physics.world.setBounds(0, 0, width, height);
@@ -200,6 +203,9 @@ export class HuntingScene extends Phaser.Scene {
 
     const playerPos = { x: this.player.x, y: this.player.y };
 
+    // Auto-save session before entering battle
+    void playerSessionManager.saveSession();
+
     // Clean up active monster sprites before transitioning
     for (const sprite of this.monsterSprites) {
       sprite.defeat();
@@ -308,6 +314,9 @@ export class HuntingScene extends Phaser.Scene {
     this.monsterSprites = [];
 
     this.player.setVelocity(0, 0);
+
+    // Save session on exit
+    void playerSessionManager.saveSession();
 
     this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
       if (progress === 1) {

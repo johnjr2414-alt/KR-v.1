@@ -1,13 +1,12 @@
 import Phaser from 'phaser';
 import type { MonsterDefinition } from '../core/types/monster';
-import { createPlayerData, type PlayerData } from '../player/PlayerData';
+import { type PlayerData, playerSessionManager, createPlayerData } from '../player';
 import { BattleSession } from '../combat/BattleSession';
 import { QuestionRepository } from '../questions/retrieval/QuestionRepository';
 import { loadBundledQuestions } from '../questions/retrieval/QuestionLoader';
 import { BattleOverlay } from '../ui/battle-overlay/BattleOverlay';
 import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
-import { inventoryManager } from '../inventory/InventoryManager';
 import '../ui/battle-overlay/battle-overlay.css';
 import '../ui/question-modal/question-modal.css';
 import '../ui/inventory-panel/inventory-panel.css';
@@ -44,7 +43,14 @@ export class BattleScene extends Phaser.Scene {
 
   init(data: BattleSceneInitData): void {
     this.monster = data.monster;
-    this.player = data.player || createPlayerData('player-1', 'Novice Hero');
+    if (playerSessionManager.isInitialized()) {
+      this.player = playerSessionManager.getPlayer();
+    } else if (data.player) {
+      this.player = data.player;
+    } else {
+      this.player = createPlayerData('player-1', 'Novice Hero');
+    }
+
     if (data.returnSceneKey) this.returnSceneKey = data.returnSceneKey;
     if (data.returnPosition) this.returnPosition = { ...data.returnPosition };
   }
@@ -68,11 +74,12 @@ export class BattleScene extends Phaser.Scene {
     const bundled = loadBundledQuestions();
     const repo = new QuestionRepository(bundled.questions);
 
-    // Initialize headless BattleSession
+    // Initialize headless BattleSession using active player session managers
     this.session = new BattleSession({
       player: this.player,
       monster: this.monster,
       repository: repo,
+      masteryManager: playerSessionManager.mastery,
     });
 
     // Create DOM Battle HUD overlay
@@ -211,12 +218,18 @@ export class BattleScene extends Phaser.Scene {
   private finishBattle(): void {
     const summary = this.session.getEndSummary();
 
-    // Automatically deposit victory drops into inventory
+    // Sync remaining HP to active player
+    this.player.currentHp = summary.remainingPlayerHp;
+
+    // Automatically deposit victory drops into active inventory
     if (summary.droppedItems && summary.droppedItems.length > 0) {
       for (const drop of summary.droppedItems) {
-        inventoryManager.addItem(drop.itemId, drop.quantity);
+        playerSessionManager.inventory.addItem(drop.itemId, drop.quantity);
       }
     }
+
+    // Auto-save session upon battle resolution
+    void playerSessionManager.saveSession();
 
     this.overlay.showEndSummary(summary);
   }
@@ -225,6 +238,9 @@ export class BattleScene extends Phaser.Scene {
     this.activeQuestionModal?.destroy();
     this.activeQuestionModal = null;
     this.overlay?.destroy();
+
+    // Auto-save before transitioning out of battle
+    void playerSessionManager.saveSession();
 
     this.scene.start(this.returnSceneKey, {
       spawnPosition: this.returnPosition,

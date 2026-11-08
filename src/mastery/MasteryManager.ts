@@ -77,6 +77,16 @@ export class MasteryManager {
   }
 
   /**
+   * Replaces internal records with loaded mastery records.
+   */
+  loadRecords(loadedRecords: Record<SubjectId, MasteryRecord>): void {
+    this.records.clear();
+    for (const [subject, rec] of Object.entries(loadedRecords)) {
+      this.records.set(subject as SubjectId, { ...rec });
+    }
+  }
+
+  /**
    * Subscribes a listener to mastery level-up events.
    */
   onLevelUp(callback: MasteryLevelUpCallback): () => void {

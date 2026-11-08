@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_TITLE, GAME_VERSION } from '../constants';
 import { StartMenu } from '../ui/start-menu';
 import { roleManager, AppRole } from '../core/roles';
+import { playerSessionManager } from '../player';
 import { VillageScene } from './VillageScene';
 import { AdminDashboardScene } from './AdminDashboardScene';
 import '../ui/start-menu/start-menu.css';
@@ -16,6 +17,7 @@ export class BootScene extends Phaser.Scene {
   static readonly KEY = 'BootScene';
 
   private startMenu: StartMenu | null = null;
+  private loadingText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super({ key: BootScene.KEY });
@@ -26,6 +28,12 @@ export class BootScene extends Phaser.Scene {
 
     // Minimal background while the start menu is visible.
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
+
+    this.loadingText = this.add.text(width / 2, height / 2, 'Loading Game Data...', {
+      fontFamily: 'Arial',
+      fontSize: '18px',
+      color: '#93c5fd',
+    }).setOrigin(0.5).setVisible(false);
 
     this.add.text(width / 2, height - 30, `Phaser ${Phaser.VERSION}`, {
       fontFamily: 'Arial',
@@ -39,18 +47,30 @@ export class BootScene extends Phaser.Scene {
     this.startMenu = new StartMenu();
     this.startMenu.show((role: AppRole) => {
       roleManager.selectRole(role);
-      this.navigateToRoleScreen(role);
+      void this.handleRoleSelection(role);
     });
   }
 
   /**
    * Transition to the appropriate Phaser scene based on the selected role.
+   * If User is selected, initializes or loads the player session before scene transition.
    */
-  private navigateToRoleScreen(role: AppRole): void {
-    if (role === AppRole.User) {
-      this.scene.start(VillageScene.KEY);
-    } else {
+  private async handleRoleSelection(role: AppRole): Promise<void> {
+    if (role === AppRole.SuperAdmin) {
       this.scene.start(AdminDashboardScene.KEY);
+      return;
+    }
+
+    // User Role Selected: Show loading indicator
+    this.loadingText?.setVisible(true);
+
+    try {
+      await playerSessionManager.initializeSession();
+    } catch (err) {
+      console.error('[BootScene] Error initializing player session:', err);
+    } finally {
+      this.loadingText?.setVisible(false);
+      this.scene.start(VillageScene.KEY);
     }
   }
 

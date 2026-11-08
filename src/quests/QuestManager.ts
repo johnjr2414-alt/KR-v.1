@@ -64,6 +64,19 @@ export class QuestManager {
   }
 
   /**
+   * Replaces internal quest records with loaded quest records.
+   */
+  loadQuests(records: PlayerQuestRecord[]): void {
+    this.activeQuests.clear();
+    for (const record of records) {
+      this.activeQuests.set(record.questId, {
+        ...record,
+        objectives: record.objectives.map((o) => ({ ...o })),
+      });
+    }
+  }
+
+  /**
    * Returns a specific quest record by ID.
    */
   getQuestRecord(questId: string): PlayerQuestRecord | undefined {

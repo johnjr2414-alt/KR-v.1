@@ -59,6 +59,17 @@ export class InventoryManager {
   }
 
   /**
+   * Replaces internal inventory state with a loaded state.
+   */
+  loadState(newState: InventoryState): void {
+    this.state = {
+      capacity: newState.capacity || DEFAULT_INVENTORY_CAPACITY,
+      slots: newState.slots.map((s) => (s ? { ...s } : null)),
+      equipped: { ...newState.equipped },
+    };
+  }
+
+  /**
    * Adds an item with quantity, stacking where possible up to the item's stackLimit.
    */
   addItem(itemId: string, quantity: number): AddItemResult {

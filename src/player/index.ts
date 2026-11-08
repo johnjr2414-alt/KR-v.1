@@ -10,3 +10,9 @@ export {
   type MovementInputState,
   type VelocityVector,
 } from './movement/PlayerMovementController';
+
+export {
+  PlayerSessionManager,
+  playerSessionManager,
+  type PlayerSessionConfig,
+} from './PlayerSessionManager';

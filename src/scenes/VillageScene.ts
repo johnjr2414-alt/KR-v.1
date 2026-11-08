@@ -3,13 +3,12 @@ import { BEGINNERS_VILLAGE, type MapDefinition } from '../world';
 import { BUILDING_REGISTRY, HUNTING_ZONE_REGISTRY } from '../world';
 import { checkZoneAccess } from '../world/zoneAccess';
 import type { BuildingDefinition } from '../world/BuildingDefinition';
-import { calculateMovementVelocity, DEFAULT_MOVE_SPEED } from '../player';
+import { calculateMovementVelocity, DEFAULT_MOVE_SPEED, playerSessionManager } from '../player';
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import { ZoneWarningModal } from '../ui/zone-warning';
 import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
 import { getNPCsForMap } from '../quests/NPCRegistry';
 import type { NPCDefinition } from '../quests/NPCTypes';
-import { questManager } from '../quests/QuestManager';
 import '../ui/zone-warning/zone-warning.css';
 import '../ui/npc-dialogue/npc-dialogue.css';
 
@@ -31,9 +30,6 @@ const LANDMARK_TO_BUILDING_ID: Record<string, string> = {
 
 // Player must be within this many pixels (Chebyshev) to interact
 const INTERACTION_RANGE = 80;
-
-// Danger delta threshold for mandatory warning
-const PLAYER_TEST_LEVEL = 1; // placeholder: replaced by real PlayerData in Phase 17
 
 export interface SceneTransitionData {
   spawnPosition?: { x: number; y: number };
@@ -72,6 +68,9 @@ export class VillageScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Auto-save on entering village
+    void playerSessionManager.saveSession();
+
     const { width, height } = this.mapData.bounds;
 
     this.physics.world.setBounds(0, 0, width, height);
@@ -151,6 +150,7 @@ export class VillageScene extends Phaser.Scene {
   // ── NPC creation ───────────────────────────────────────────────
   private createNPCs(): void {
     this.npcs = getNPCsForMap(this.mapData.id);
+    const playerLevel = playerSessionManager.getPlayer().level;
 
     for (const npc of this.npcs) {
       const { x, y } = npc.position;
@@ -163,7 +163,7 @@ export class VillageScene extends Phaser.Scene {
       gfx.strokeCircle(x, y, 16);
 
       // NPC name and quest indicator
-      const questStatus = questManager.getNpcQuestStatus(npc.id, PLAYER_TEST_LEVEL);
+      const questStatus = playerSessionManager.quests.getNpcQuestStatus(npc.id, playerLevel);
       const icon = questStatus === 'ready-turn-in' ? '❓ ' : questStatus === 'available' ? '❗ ' : '';
 
       this.add.text(x, y - 28, `${icon}${npc.name}`, {
@@ -180,6 +180,7 @@ export class VillageScene extends Phaser.Scene {
   private checkNPCProximity(): void {
     const px = this.player.x;
     const py = this.player.y;
+    const playerLevel = playerSessionManager.getPlayer().level;
 
     let nearest: NPCDefinition | null = null;
     let nearestDist = Infinity;
@@ -198,7 +199,7 @@ export class VillageScene extends Phaser.Scene {
     this.nearbyNPC = nearest;
 
     if (nearest && !this.nearbyBuilding) {
-      const questStatus = questManager.getNpcQuestStatus(nearest.id, PLAYER_TEST_LEVEL);
+      const questStatus = playerSessionManager.quests.getNpcQuestStatus(nearest.id, playerLevel);
       const promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
 
       this.interactPrompt
@@ -358,14 +359,18 @@ export class VillageScene extends Phaser.Scene {
     if (this.activeDialogueModal) return;
 
     this.player.setVelocity(0, 0);
+    const player = playerSessionManager.getPlayer();
+
     this.activeDialogueModal = new NPCDialogueModal({
       npc,
-      questManager,
-      playerLevel: PLAYER_TEST_LEVEL,
+      questManager: playerSessionManager.quests,
+      playerLevel: player.level,
       onClose: () => {
         this.activeDialogueModal = null;
+        void playerSessionManager.saveSession();
       },
       onQuestUpdate: () => {
+        void playerSessionManager.saveSession();
         // Refresh scene NPC icons if needed
       },
     });
@@ -388,9 +393,10 @@ export class VillageScene extends Phaser.Scene {
       return;
     }
 
+    const player = playerSessionManager.getPlayer();
     const displayName = zoneName ?? huntingZone.name;
     const check = checkZoneAccess(
-      PLAYER_TEST_LEVEL,
+      player.level,
       huntingZone.averageMonsterLevel,
       displayName,
       huntingZone.recommendedMinLevel,
@@ -415,6 +421,9 @@ export class VillageScene extends Phaser.Scene {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
     this.player.setVelocity(0, 0);
+
+    // Save on scene exit
+    void playerSessionManager.saveSession();
 
     this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
       if (progress === 1) {
