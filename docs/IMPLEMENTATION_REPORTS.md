@@ -959,6 +959,31 @@ Phase 24.4 implements data-driven elite and world boss encounters (`prime-gargoy
 - **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
 - **Production Build (`npm run build`)**: Succeeded cleanly.
 
+---
+
+# Phase 24.5 — Build Balance and Progression Simulation
+
+**Date**: 2026-11-08  
+**Phase**: 24.5 (Handbook Section: RPG Progression Depth)  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 24.5 establishes a deterministic balance simulation and test harness (`ProgressionSimulator`) evaluating character EXP growth curves, archetype match-ups (`Balanced`, `GlassCannon`, `Tank`, `Scholar`), monster lethality, and gold inflation across Beginners Village (Levels 1–10). Simulation confirms smooth pacing (~26–28 battles/level), balanced build asymmetry, and healthy gold sinks.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/core/progression/ProgressionSimulator.ts`: Headless balance simulator and audit engine.
+  - `tests/progression/phase24_5_simulation.test.ts`: 6 automated unit tests.
+  - `docs/PHASE_24_5_BALANCE_REPORT.md`: Comprehensive design audit and balance report.
+- **Modified Files**:
+  - `src/core/progression/index.ts`: Barrel exports.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm test`)**: 56 test files passed (519 passed, 0 failures).
+- **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
+- **Production Build (`npm run build`)**: Succeeded cleanly.
+
+
 
 
 
