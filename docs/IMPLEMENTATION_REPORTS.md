@@ -377,6 +377,35 @@ Players can now track active and completed quests, view objective progress (mons
   5. Return to Elder Aldous and turn in the quest.
   6. Open Quest Journal (`Q`) and click the "Completed (1)" tab. Verify quest is archived with "Completed" status.
 
+---
+
+# Phase 21.8 — End-to-End Core Loop Regression
+
+**Date**: 2026-11-08  
+**Phase**: 21.8  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 21.8 serves as the quality-assurance gate and end-to-end integration verification concluding Phase 21. It validates that the entire single-player loop operates reliably as one interconnected system across boot, role selection, village exploration, dialogue, quest acceptance, shop trading, subject hunting zone transitions, turn-based educational combat, reward claiming, defeat recovery, safe saving, browser refresh rehydration, and Super Admin question synchronization.
+
+All 27 journey steps specified in the Development Prompt Handbook passed with zero regressions. An automated regression test suite was added to continuously protect the core loop across all future phases.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `tests/integration/phase21_8_core_loop_regression.test.ts`: Automated regression suite covering the complete 27-step core loop journey from boot to combat, economy, quests, and admin question synchronization.
+  - `docs/PHASE_21_8_CORE_LOOP_QA_REPORT.md`: Comprehensive QA classification matrix and audit dimension breakdown.
+- **Modified Files**:
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master implementation report updated with Phase 21.8.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **39 test files passed** (394 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 
