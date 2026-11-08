@@ -9,6 +9,7 @@ import { QuestManager, questManager } from '../quests/QuestManager';
 import { CurrencyService, currencyService } from '../economy/CurrencyService';
 import { ProgressionService, progressionService } from '../core/progression/ProgressionService';
 import { createInitialMasteryMap } from '../mastery/MasteryData';
+import { audioManager } from '../audio';
 
 export interface PlayerSessionConfig {
   storage?: StorageService;
@@ -90,6 +91,7 @@ export class PlayerSessionManager {
 
   updateSettings(newSettings: Partial<GameSettings>): void {
     this.settings = { ...this.settings, ...newSettings };
+    audioManager.updateSettings(this.settings);
     void this.saveSession();
   }
 
@@ -129,6 +131,7 @@ export class PlayerSessionManager {
 
         // Restore settings
         this.settings = { ...loadedSave.settings };
+        audioManager.updateSettings(this.settings);
 
         // Hydrate domain services
         if (loadedSave.inventory) {

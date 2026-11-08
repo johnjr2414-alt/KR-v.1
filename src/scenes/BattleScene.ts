@@ -7,6 +7,7 @@ import { BattleOverlay } from '../ui/battle-overlay/BattleOverlay';
 import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
 import { formatCombatFeedback, type CombatFeedbackDescriptor } from '../combat/CombatFeedbackMapper';
+import { audioManager } from '../audio';
 import '../ui/battle-overlay/battle-overlay.css';
 import '../ui/question-modal/question-modal.css';
 import '../ui/inventory-panel/inventory-panel.css';
@@ -61,6 +62,9 @@ export class BattleScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.cameras.main.fadeIn(250, 0, 0, 0);
+
+    // Play intense combat BGM
+    audioManager.playMusic('bgm-combat');
 
     // Arena background
     const bg = this.add.graphics();
@@ -155,6 +159,7 @@ export class BattleScene extends Phaser.Scene {
         // Animate combat hit with authoritative feedback
         const showDamageNumbers = playerSessionManager.getSettings().showDamageNumbers;
         const feedback = formatCombatFeedback(turnResult, showDamageNumbers);
+        audioManager.playSfx(feedback.soundCue);
 
         if (turnResult.outcome === AnswerOutcome.Correct) {
           this.animatePlayerAttack(feedback);

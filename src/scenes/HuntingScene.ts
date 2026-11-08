@@ -14,6 +14,7 @@ import {
   type Direction,
 } from './animations';
 import { InteractionGuard } from './interactions';
+import { audioManager } from '../audio';
 
 /** Number of monsters to spawn per zone visit. */
 const MONSTERS_PER_ZONE = 6;
@@ -80,6 +81,9 @@ export class HuntingScene extends Phaser.Scene {
   create(): void {
     // Smooth camera fade in on scene entry
     this.cameras.main.fadeIn(250, 10, 10, 15);
+
+    // Play hunting zone wilderness BGM
+    audioManager.playMusic('bgm-wilderness');
 
     // Save on entering hunting zone
     void playerSessionManager.saveSession();

@@ -19,6 +19,7 @@ import {
   type Direction,
 } from './animations';
 import { InteractionGuard, isWithinInteractionRange } from './interactions';
+import { audioManager } from '../audio';
 import '../ui/zone-warning/zone-warning.css';
 import '../ui/npc-dialogue/npc-dialogue.css';
 
@@ -85,6 +86,9 @@ export class VillageScene extends Phaser.Scene {
   create(): void {
     // Smooth camera fade in on scene entry
     this.cameras.main.fadeIn(250, 10, 10, 15);
+
+    // Play village ambient BGM
+    audioManager.playMusic('bgm-village');
 
     // Auto-save on entering village
     void playerSessionManager.saveSession();

@@ -504,6 +504,41 @@ Camera transitions now feature uniform bidirectional fades (250ms duration) to e
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 22.4 — Audio System
+
+**Date**: 2026-11-08  
+**Phase**: 22.4  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 22.4 implements a centralized, maintainable audio architecture for Knowledge Realms via `AudioManager`.
+
+Because the project currently has no static audio files (`.mp3`, `.ogg`, `.wav`), `AudioManager` handles volume scaling (`effectiveVolume = masterVolume * channelVolume`), background track deduping (preventing duplicate restarts when transitioning between scenes), and mute toggling. An integrated procedural Web Audio synthesizer provides auditory feedback for combat cues (`sfx-attack`, `sfx-crit`, `sfx-hurt`, `sfx-timeout`) without external assets or CDN dependencies, while safely handling browser autoplay policies. A production audio asset specification has been documented for future audio drops.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/audio/AudioManager.ts`: Centralized audio manager with volume scaling, track deduping, and procedural tone fallback.
+  - `src/audio/index.ts`: Barrel export.
+  - `tests/audio/phase22_4_audio_system.test.ts`: Automated unit test suite verifying volume calculations, muting behavior, track deduping, and SFX trigger validation.
+  - `docs/PHASE_22_4_IMPLEMENTATION_REPORT.md`: Standalone report with required audio asset list.
+- **Modified Files**:
+  - `src/player/PlayerSessionManager.ts`: Synchronized `audioManager.updateSettings()` with player session settings.
+  - `src/scenes/VillageScene.ts`: Integrated ambient BGM request (`bgm-village`).
+  - `src/scenes/HuntingScene.ts`: Integrated wilderness BGM request (`bgm-wilderness`).
+  - `src/scenes/BattleScene.ts`: Integrated combat BGM request (`bgm-combat`) and wired combat SFX triggers (`sfx-attack`, `sfx-crit`, `sfx-hurt`, `sfx-timeout`).
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master implementation report updated with Phase 22.4.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **43 test files passed** (414 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 
