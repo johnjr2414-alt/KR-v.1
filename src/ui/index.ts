@@ -12,4 +12,5 @@ export { PauseModal, type PauseModalOptions } from './pause-modal';
 export { QuestJournal, type QuestJournalOptions } from './quest-journal';
 export { SkillModal, type SkillModalOptions } from './skill-modal';
 export { BankModal, type BankModalOptions } from './bank-modal';
+export { ArenaModal, type ArenaModalOptions } from './arena-modal';
 import './accessibility.css';

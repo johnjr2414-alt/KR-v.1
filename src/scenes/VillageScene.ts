@@ -10,6 +10,7 @@ import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
 import { ExplorationUIManager } from '../ui/exploration-hud';
 import { ShopModal } from '../ui/shop-modal';
 import { BankModal } from '../ui/bank-modal';
+import { ArenaModal } from '../ui/arena-modal';
 import type { ShopDefinition } from '../economy/ShopTypes';
 import { getShopForMerchant } from '../economy/ShopRegistry';
 import { getNPCsForMap } from '../quests/NPCRegistry';
@@ -65,6 +66,7 @@ export class VillageScene extends Phaser.Scene {
   private activeDialogueModal: NPCDialogueModal | null = null;
   private activeShopModal: ShopModal | null = null;
   private activeBankModal: BankModal | null = null;
+  private activeArenaModal: ArenaModal | null = null;
   private npcs: NPCDefinition[] = [];
   private explorationUI: ExplorationUIManager | null = null;
   private currentDirection: Direction = 'down';
@@ -381,11 +383,15 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
-    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.explorationUI?.isPanelOpen()) return;
+    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.activeArenaModal || this.explorationUI?.isPanelOpen()) return;
     if (!this.interactionGuard.canTrigger()) return;
 
     // Prioritize NPC interaction if close to an NPC
     if (this.nearbyNPC) {
+      if (this.nearbyNPC.id === 'gladius-the-bold') {
+        this.openArenaModal();
+        return;
+      }
       if (this.nearbyNPC.id === 'treasurer-aurelius') {
         this.openBankModal();
         return;
@@ -412,7 +418,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openNPCDialogue(npc: NPCDefinition): void {
-    if (this.activeDialogueModal || this.activeShopModal || this.activeBankModal) return;
+    if (this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.activeArenaModal) return;
 
     this.player.setVelocity(0, 0);
     const player = playerSessionManager.getPlayer();
@@ -435,7 +441,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openShopModal(shop: ShopDefinition): void {
-    if (this.activeShopModal || this.activeDialogueModal || this.activeBankModal) return;
+    if (this.activeShopModal || this.activeDialogueModal || this.activeBankModal || this.activeArenaModal) return;
 
     this.player.setVelocity(0, 0);
 
@@ -454,7 +460,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openBankModal(): void {
-    if (this.activeBankModal || this.activeShopModal || this.activeDialogueModal) return;
+    if (this.activeBankModal || this.activeShopModal || this.activeDialogueModal || this.activeArenaModal) return;
 
     this.player.setVelocity(0, 0);
 
@@ -470,6 +476,23 @@ export class VillageScene extends Phaser.Scene {
     });
 
     this.activeBankModal.show();
+  }
+
+  private openArenaModal(): void {
+    if (this.activeArenaModal || this.activeBankModal || this.activeShopModal || this.activeDialogueModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeArenaModal = new ArenaModal({
+      onClose: () => {
+        this.activeArenaModal = null;
+      },
+      onMatchComplete: () => {
+        void playerSessionManager.saveSession();
+      },
+    });
+
+    this.activeArenaModal.show();
   }
 
   // ── Zone entry with optional risk warning ─────────────────────
@@ -537,5 +560,7 @@ export class VillageScene extends Phaser.Scene {
     this.activeShopModal = null;
     this.activeBankModal?.destroy();
     this.activeBankModal = null;
+    this.activeArenaModal?.destroy();
+    this.activeArenaModal = null;
   }
 }

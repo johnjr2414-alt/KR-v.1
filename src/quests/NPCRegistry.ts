@@ -83,6 +83,21 @@ export const NPC_REGISTRY: Record<string, NPCDefinition> = {
       ],
     },
   },
+  'gladius-the-bold': {
+    id: 'gladius-the-bold',
+    name: 'Arena Master Gladius',
+    title: 'Colosseum Sparring Arbiter',
+    type: NPCType.ArenaMaster,
+    mapId: 'beginners-village',
+    position: { x: 420, y: 520 },
+    spriteColor: 0xef4444,
+    dialogue: {
+      default: [
+        'Welcome to the Colosseum Sparring Grounds, challenger!',
+        'Test your academic wits in friendly duels against rival scholars under the Reverse Difficulty Rule.',
+      ],
+    },
+  },
 };
 
 export function getNPCDefinition(id: string): NPCDefinition | undefined {

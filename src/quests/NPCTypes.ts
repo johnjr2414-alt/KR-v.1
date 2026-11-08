@@ -4,6 +4,7 @@ export enum NPCType {
   Merchant = 'merchant',
   Scholar = 'scholar',
   Banker = 'banker',
+  ArenaMaster = 'arena-master',
 }
 
 export interface NPCDialogueLine {

@@ -1,0 +1,244 @@
+/* Arena Overlay CSS */
+.arena-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  user-select: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.arena-card {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  width: 640px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+  color: #f8fafc;
+  overflow: hidden;
+}
+
+.arena-card__header {
+  padding: 16px 20px;
+  background: #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.arena-card__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f43f5e;
+}
+
+.arena-card__subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.arena-card__close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.arena-card__close:hover {
+  color: #f8fafc;
+}
+
+.arena-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Matchup scoreboard */
+.arena-matchup-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.arena-combatant {
+  display: flex;
+  flex-direction: column;
+}
+
+.arena-combatant--player {
+  text-align: left;
+}
+
+.arena-combatant--rival {
+  text-align: right;
+}
+
+.arena-combatant__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.arena-combatant__level {
+  font-size: 12px;
+  color: #fbbf24;
+}
+
+.arena-combatant__score {
+  font-size: 24px;
+  font-weight: 800;
+  color: #38bdf8;
+  margin-top: 4px;
+}
+
+.arena-vs {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f43f5e;
+  text-align: center;
+  padding: 0 10px;
+}
+
+/* Reverse Difficulty Banner */
+.arena-handicap-banner {
+  background: #131d2e;
+  border-left: 4px solid #f43f5e;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+.arena-handicap-banner strong {
+  color: #f43f5e;
+}
+
+/* Rival selection list */
+.arena-rival-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arena-rival-item {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.arena-rival-item:hover {
+  background: #273549;
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.arena-rival-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.arena-rival-item__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.arena-rival-item__meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.arena-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.arena-btn--primary {
+  background: #f43f5e;
+  color: #ffffff;
+}
+
+.arena-btn--primary:hover {
+  background: #fb7185;
+}
+
+.arena-btn--secondary {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.arena-btn--secondary:hover {
+  background: #475569;
+}
+
+/* Round outcome alert */
+.arena-outcome-box {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.arena-outcome-box--win {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  color: #34d399;
+}
+
+.arena-outcome-box--lose {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+}
+
+.arena-outcome-box--tie {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid #fbbf24;
+  color: #fcd34d;
+}
+
+.arena-card__footer {
+  padding: 12px 20px;
+  background: #1e293b;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #94a3b8;
+}
