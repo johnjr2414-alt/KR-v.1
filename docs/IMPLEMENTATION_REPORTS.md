@@ -605,6 +605,40 @@ A domain model was established in `src/skills/` specifying skill classifications
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 23.2 — Subject-Specific Skill Trees
+
+**Date**: 2026-11-08  
+**Phase**: 23.2  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 23.2 connects academic subject mastery to unlockable knowledge-themed skill trees for Mathematics, Science, and General Knowledge.
+
+Directed Acyclic Graph (DAG) structures were established with explicit root nodes, prerequisite linkages, and tier levels. A graph validation engine (`validateSkillTreeDAG`) was implemented using depth-first search (DFS) to detect circular dependencies (loops), missing prerequisites, and subject cross-contamination. Unit tests verify that subject mastery trees operate independently, and skills cannot be unlocked multiple times past their maximum level caps.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/skills/SkillTreeTypes.ts`: Type contracts defining `SkillTreeNode`, `SubjectSkillTree`, and `SkillTreeValidationResult`.
+  - `src/skills/SkillTreeValidator.ts`: Graph validation utility verifying tree integrity and cycle absence via DFS.
+  - `src/skills/SkillTreeRegistry.ts`: Configurable skill trees for `Mathematics`, `Science`, and `GeneralKnowledge` (`MATHEMATICS_SKILL_TREE`, `SCIENCE_SKILL_TREE`, `GENERAL_KNOWLEDGE_SKILL_TREE`).
+  - `tests/skills/phase23_2_skill_trees.test.ts`: Automated unit test suite verifying DAG validity, cycle detection, missing prerequisites reporting, and subject isolation.
+  - `docs/PHASE_23_2_IMPLEMENTATION_REPORT.md`: Standalone report.
+- **Modified Files**:
+  - `src/skills/SkillRegistry.ts`: Re-exported skills from `SkillTreeRegistry`.
+  - `src/skills/index.ts`: Barrel export.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master report updated with Phase 23.2.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **46 test files passed** (429 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 
