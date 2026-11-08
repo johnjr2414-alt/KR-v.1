@@ -5,6 +5,7 @@ import './exploration-hud.css';
 export interface ExplorationHUDOptions {
   onOpenInventory?: () => void;
   onOpenMastery?: () => void;
+  onOpenQuests?: () => void;
 }
 
 /**
@@ -16,11 +17,13 @@ export class ExplorationHUD {
   private container: HTMLDivElement | null = null;
   private readonly onOpenInventory?: () => void;
   private readonly onOpenMastery?: () => void;
+  private readonly onOpenQuests?: () => void;
   private unsubscribeGoldListener: (() => void) | null = null;
 
   constructor(options: ExplorationHUDOptions = {}) {
     this.onOpenInventory = options.onOpenInventory;
     this.onOpenMastery = options.onOpenMastery;
+    this.onOpenQuests = options.onOpenQuests;
   }
 
   show(): void {
@@ -106,6 +109,9 @@ export class ExplorationHUD {
             <button class="exploration-hud__btn" id="hud-mastery-btn" type="button">
               📖 Mastery <span class="exploration-hud__btn-key">M</span>
             </button>
+            <button class="exploration-hud__btn" id="hud-quest-btn" type="button">
+              📜 Quests <span class="exploration-hud__btn-key">Q</span>
+            </button>
           </div>
         </div>
       </div>
@@ -120,6 +126,11 @@ export class ExplorationHUD {
     this.container.querySelector('#hud-mastery-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.onOpenMastery?.();
+    });
+
+    this.container.querySelector('#hud-quest-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.onOpenQuests?.();
     });
   }
 

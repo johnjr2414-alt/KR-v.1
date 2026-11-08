@@ -307,25 +307,76 @@ Pressing `ESC` toggles the `PauseModal` overlay, freezing player movement. If an
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors.
 
+
+---
+
+# Phase 21.7 — Quest Journal and Core Gameplay UI Integration
+
+**Date**: 2026-11-08  
+**Phase**: 21.7  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 21.7 completes the core gameplay user interface by introducing an interactive Quest Journal modal overlay connected to `playerSessionManager.quests`, the `ExplorationHUD`, and the `ExplorationUIManager` shortcut coordinator (`Q` key).
+
+Players can now track active and completed quests, view objective progress (monster kills, item collections, questions answered), check quest giver names and locations, preview completion rewards (combat EXP, gold, items), and monitor when quests become ready to turn in. Single-panel modal exclusivity guarantees clean UI interactions without overlapping dialogs.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/ui/quest-journal/QuestJournal.ts`: DOM-based modal component rendering tabbed views ("Active Quests" and "Completed Quests"), objective status indicators, reward pills, and close handlers.
+  - `src/ui/quest-journal/quest-journal.css`: Responsive CSS theme adhering to the Knowledge Realms retro-fantasy aesthetic.
+  - `src/ui/quest-journal/index.ts`: Barrel export for `QuestJournal`.
+  - `tests/ui/phase21_7_quest_journal.test.ts`: Unit tests verifying quest active/completed tab partitioning, objective progress tracking, turn-in readiness, reward inspection, and headless compatibility.
+- **Modified Files**:
+  - `src/ui/index.ts`: Added barrel export for `QuestJournal`.
+  - `src/ui/exploration-hud/ExplorationHUD.ts`: Added `📜 Quests [Q]` shortcut button in the HUD footer bar and wired `onOpenQuests` callback.
+  - `src/ui/exploration-hud/ExplorationUIManager.ts`:
+    - Added `Q` key input registration (`keyQ`).
+    - Added `activeQuestJournal` state, `toggleQuests()`, `openQuests()`, and `closeQuests()`.
+    - Added `closeAllModals()` to enforce modal exclusivity: opening Inventory, Mastery, Quests, or Pause cleanly dismisses any other open panel.
+    - Updated `isPanelOpen()` and `handleEscape()` to prioritize closing the Quest Journal when open.
+
+### 3. Key Design Decisions & Exclusivity Rules
+- **Single-Panel Exclusivity**:
+  - Opening the Quest Journal (`Q` or HUD button) automatically closes any open Bag (`I`) or Mastery (`M`) panel.
+  - Conversely, opening the Bag or Mastery panel automatically closes the Quest Journal.
+- **Escape Key Integration**:
+  - If the Quest Journal is currently visible, pressing `ESC` immediately closes it and returns control to exploration. Only when all panels are closed does `ESC` trigger the Pause Menu.
+- **Movement Suspension**:
+  - When the Quest Journal opens, `inputAdapter.suspendMovement()` freezes player movement and velocity. Movement resumes immediately when the modal is closed via `Q`, `ESC`, or the close button (`×`).
+- **Dynamic Tab Refreshing**:
+  - The journal renders real-time objective counts (`currentCount / requiredCount`), highlights completed objectives with distinct styling, marks quests with `Ready to Turn In` badges, and separates finished quests into a dedicated `Completed` tab with timestamp sorting.
+
+### 4. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **38 test files passed** (387 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
 ### 5. Manual Verification Checklist (For Browser Testing)
-- [ ] **Pause & Resume**:
-  1. Boot game as "User" and spawn in Beginners Village.
-  2. Press `ESC`. Confirm pause menu appears and character movement is stopped.
-  3. Click "▶️ Resume Game" or press `ESC` again. Confirm movement resumes.
-- [ ] **Escape Closes Panels First**:
-  1. Press `I` to open Bag.
-  2. Press `ESC`. Confirm Bag closes and pause menu is NOT opened.
-  3. Press `ESC` again. Confirm pause menu opens.
-- [ ] **Settings Adjustments**:
-  1. Open pause menu, select "⚙️ Settings".
-  2. Adjust Master Volume to 50% and toggle "Show Damage Numbers".
-  3. Click "← Back", resume game, and refresh browser (`F5`).
-  4. Press `ESC` -> Settings; verify settings retained the modified values.
-- [ ] **Safe Return to Start Menu**:
-  1. Open pause menu, select "🚪 Return to Start Menu".
-  2. Verify confirmation prompt appears.
-  3. Click "Yes, Save & Exit". Verify clean fade transition back to Start Menu.
-  4. Click "Play as User" and verify player character resumes with all progress intact.
+- [ ] **Open via Keyboard & HUD**:
+  1. Boot game as "User" and enter Beginners Village.
+  2. Press `Q`. Confirm Quest Journal opens and player cannot move while open.
+  3. Press `Q` again. Confirm Quest Journal closes and movement resumes.
+  4. Click the `📜 Quests [Q]` button in the bottom HUD. Confirm the journal opens.
+- [ ] **Modal Exclusivity**:
+  1. Press `Q` to open the Quest Journal.
+  2. Press `I`. Verify the Quest Journal closes and the Bag panel opens.
+  3. Press `M`. Verify Bag closes and Mastery panel opens.
+  4. Press `Q`. Verify Mastery closes and Quest Journal opens.
+- [ ] **Escape Key Behavior**:
+  1. With Quest Journal open, press `ESC`. Verify Quest Journal closes and Pause Menu does NOT open.
+  2. Press `ESC` again. Verify Pause Menu opens.
+- [ ] **Quest Progress Tracking**:
+  1. Speak with Elder Aldous to accept the "Slime Infestation" quest.
+  2. Open Quest Journal (`Q`). Verify quest appears under "Active (1)" with "0 / 2 Defeat Forest Slimes" and giver "Elder Aldous".
+  3. Enter Hunting Grounds and defeat 2 Forest Slimes.
+  4. Open Quest Journal (`Q`). Verify objective displays "2 / 2" and badge updates to "Ready to Turn In".
+  5. Return to Elder Aldous and turn in the quest.
+  6. Open Quest Journal (`Q`) and click the "Completed (1)" tab. Verify quest is archived with "Completed" status.
+
 
 
 
