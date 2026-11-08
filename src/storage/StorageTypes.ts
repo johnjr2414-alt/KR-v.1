@@ -4,6 +4,7 @@ import type { MasteryRecord } from '../core/types/mastery';
 import type { InventoryState } from '../inventory/ItemTypes';
 import type { PlayerQuestRecord } from '../quests/QuestTypes';
 import type { PlayerSkillsState } from '../skills/SkillTypes';
+import type { BankState } from '../economy/BankTypes';
 
 export interface GameSettings {
   masterVolume: number; // 0.0 - 1.0
@@ -32,6 +33,7 @@ export interface SaveData {
   inventory: InventoryState;
   quests: PlayerQuestRecord[];
   skills?: PlayerSkillsState;
+  bank?: BankState;
   currency?: {
     gold: number;
   };

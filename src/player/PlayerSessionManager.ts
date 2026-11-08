@@ -11,6 +11,7 @@ import { ProgressionService, progressionService } from '../core/progression/Prog
 import { createInitialMasteryMap } from '../mastery/MasteryData';
 import { audioManager } from '../audio';
 import { SkillManager, skillManager } from '../skills';
+import { BankService, bankService } from '../economy/BankService';
 
 export interface PlayerSessionConfig {
   storage?: StorageService;
@@ -18,6 +19,7 @@ export interface PlayerSessionConfig {
   mastery?: MasteryManager;
   quests?: QuestManager;
   skills?: SkillManager;
+  bank?: BankService;
   currency?: CurrencyService;
   progression?: ProgressionService;
 }
@@ -48,6 +50,7 @@ export class PlayerSessionManager {
   readonly mastery: MasteryManager;
   readonly quests: QuestManager;
   readonly skills: SkillManager;
+  readonly bank: BankService;
   readonly currency: CurrencyService;
   readonly progression: ProgressionService;
 
@@ -57,6 +60,7 @@ export class PlayerSessionManager {
     this.mastery = config.mastery || masteryManager;
     this.quests = config.quests || questManager;
     this.skills = config.skills || skillManager;
+    this.bank = config.bank || bankService;
     this.currency = config.currency || currencyService;
     this.progression = config.progression || progressionService;
   }
@@ -150,6 +154,9 @@ export class PlayerSessionManager {
         if (loadedSave.skills) {
           this.skills.loadState(loadedSave.skills);
         }
+        if (loadedSave.bank) {
+          this.bank.loadState(loadedSave.bank);
+        }
         if (loadedSave.currency) {
           this.currency.setGold(loadedSave.currency.gold);
         } else {
@@ -199,6 +206,7 @@ export class PlayerSessionManager {
       inventory: this.inventory.getState(),
       quests: this.quests.getAllQuests(),
       skills: this.skills.getState(),
+      bank: this.bank.getState(),
       currency: {
         gold: this.currency.getGold(),
       },

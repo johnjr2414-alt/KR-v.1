@@ -1,4 +1,4 @@
-import type { BankAccount, BankConfig, InvestmentOpportunity, BusinessModel } from './BankTypes';
+import type { BankAccount, BankConfig, InvestmentOpportunity, BusinessModel, BankState } from './BankTypes';
 import { DEFAULT_BANK_CONFIG } from './BankTypes';
 import { CurrencyService, currencyService } from './CurrencyService';
 
@@ -27,6 +27,36 @@ export class BankService {
       savingsBalance: initialSavings,
       lastInterestAppliedAt: Date.now(),
     };
+  }
+
+  loadState(state: BankState): void {
+    if (state.account) {
+      this.account = { ...state.account };
+    }
+    this.investments.clear();
+    if (Array.isArray(state.activeInvestments)) {
+      for (const inv of state.activeInvestments) {
+        this.investments.set(inv.id, { ...inv });
+      }
+    }
+    this.businesses.clear();
+    if (Array.isArray(state.businesses)) {
+      for (const b of state.businesses) {
+        this.businesses.set(b.id, { ...b });
+      }
+    }
+  }
+
+  getState(): BankState {
+    return {
+      account: { ...this.account },
+      activeInvestments: Array.from(this.investments.values()).map((inv) => ({ ...inv })),
+      businesses: Array.from(this.businesses.values()).map((b) => ({ ...b })),
+    };
+  }
+
+  getConfig(): BankConfig {
+    return { ...this.config };
   }
 
   getSavingsBalance(): number {
@@ -95,6 +125,10 @@ export class BankService {
   }
 
   // ── Investments ──────────────────────────────────────────────
+  getActiveInvestments(): InvestmentOpportunity[] {
+    return Array.from(this.investments.values()).map((inv) => ({ ...inv }));
+  }
+
   startInvestment(opp: InvestmentOpportunity, currentTime = Date.now()): boolean {
     if (this.investments.has(opp.id)) return false;
     if (!this.currency.hasGold(opp.cost)) return false;
@@ -125,6 +159,10 @@ export class BankService {
   }
 
   // ── Businesses ───────────────────────────────────────────────
+  getAllBusinesses(): BusinessModel[] {
+    return Array.from(this.businesses.values()).map((b) => ({ ...b }));
+  }
+
   registerBusiness(business: BusinessModel): void {
     this.businesses.set(business.id, { ...business });
   }

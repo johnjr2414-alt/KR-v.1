@@ -3,6 +3,7 @@ export enum NPCType {
   QuestGiver = 'quest-giver',
   Merchant = 'merchant',
   Scholar = 'scholar',
+  Banker = 'banker',
 }
 
 export interface NPCDialogueLine {

@@ -68,6 +68,21 @@ export const NPC_REGISTRY: Record<string, NPCDefinition> = {
       ],
     },
   },
+  'treasurer-aurelius': {
+    id: 'treasurer-aurelius',
+    name: 'Treasurer Aurelius',
+    title: 'Village Banker & Investor',
+    type: NPCType.Banker,
+    mapId: 'beginners-village',
+    position: { x: 500, y: 520 },
+    spriteColor: 0xfacc15,
+    dialogue: {
+      default: [
+        'Welcome to the Beginners Village Treasury and Municipal Vault!',
+        'Keep your hard-earned gold safe from monster perils, earn compound interest, and fund venture expeditions.',
+      ],
+    },
+  },
 };
 
 export function getNPCDefinition(id: string): NPCDefinition | undefined {

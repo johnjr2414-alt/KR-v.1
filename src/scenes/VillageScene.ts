@@ -9,6 +9,7 @@ import { ZoneWarningModal } from '../ui/zone-warning';
 import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
 import { ExplorationUIManager } from '../ui/exploration-hud';
 import { ShopModal } from '../ui/shop-modal';
+import { BankModal } from '../ui/bank-modal';
 import type { ShopDefinition } from '../economy/ShopTypes';
 import { getShopForMerchant } from '../economy/ShopRegistry';
 import { getNPCsForMap } from '../quests/NPCRegistry';
@@ -63,6 +64,7 @@ export class VillageScene extends Phaser.Scene {
   private nearbyNPC: NPCDefinition | null = null;
   private activeDialogueModal: NPCDialogueModal | null = null;
   private activeShopModal: ShopModal | null = null;
+  private activeBankModal: BankModal | null = null;
   private npcs: NPCDefinition[] = [];
   private explorationUI: ExplorationUIManager | null = null;
   private currentDirection: Direction = 'down';
@@ -379,11 +381,15 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
-    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) return;
+    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.explorationUI?.isPanelOpen()) return;
     if (!this.interactionGuard.canTrigger()) return;
 
     // Prioritize NPC interaction if close to an NPC
     if (this.nearbyNPC) {
+      if (this.nearbyNPC.id === 'treasurer-aurelius') {
+        this.openBankModal();
+        return;
+      }
       const shop = getShopForMerchant(this.nearbyNPC.id);
       if (shop) {
         this.openShopModal(shop);
@@ -406,7 +412,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openNPCDialogue(npc: NPCDefinition): void {
-    if (this.activeDialogueModal || this.activeShopModal) return;
+    if (this.activeDialogueModal || this.activeShopModal || this.activeBankModal) return;
 
     this.player.setVelocity(0, 0);
     const player = playerSessionManager.getPlayer();
@@ -429,7 +435,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openShopModal(shop: ShopDefinition): void {
-    if (this.activeShopModal || this.activeDialogueModal) return;
+    if (this.activeShopModal || this.activeDialogueModal || this.activeBankModal) return;
 
     this.player.setVelocity(0, 0);
 
@@ -445,6 +451,25 @@ export class VillageScene extends Phaser.Scene {
     });
 
     this.activeShopModal.show();
+  }
+
+  private openBankModal(): void {
+    if (this.activeBankModal || this.activeShopModal || this.activeDialogueModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeBankModal = new BankModal({
+      onClose: () => {
+        this.activeBankModal = null;
+        void playerSessionManager.saveSession();
+      },
+      onTransactionComplete: () => {
+        this.explorationUI?.refreshHUD();
+        void playerSessionManager.saveSession();
+      },
+    });
+
+    this.activeBankModal.show();
   }
 
   // ── Zone entry with optional risk warning ─────────────────────
@@ -510,5 +535,7 @@ export class VillageScene extends Phaser.Scene {
     this.activeDialogueModal = null;
     this.activeShopModal?.destroy();
     this.activeShopModal = null;
+    this.activeBankModal?.destroy();
+    this.activeBankModal = null;
   }
 }

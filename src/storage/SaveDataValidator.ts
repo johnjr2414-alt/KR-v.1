@@ -146,6 +146,20 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
         }
       : undefined;
 
+  // Validate Bank (Phase 24: optional backward-compatible bank state)
+  const sanitizedBank =
+    candidate.bank && typeof candidate.bank === 'object' && candidate.bank.account
+      ? {
+          account: {
+            playerId: typeof candidate.bank.account.playerId === 'string' ? candidate.bank.account.playerId : 'player-1',
+            savingsBalance: typeof candidate.bank.account.savingsBalance === 'number' && Number.isFinite(candidate.bank.account.savingsBalance) && candidate.bank.account.savingsBalance >= 0 ? Math.floor(candidate.bank.account.savingsBalance) : 0,
+            lastInterestAppliedAt: typeof candidate.bank.account.lastInterestAppliedAt === 'number' ? candidate.bank.account.lastInterestAppliedAt : Date.now(),
+          },
+          activeInvestments: Array.isArray(candidate.bank.activeInvestments) ? [...candidate.bank.activeInvestments] : [],
+          businesses: Array.isArray(candidate.bank.businesses) ? [...candidate.bank.businesses] : [],
+        }
+      : undefined;
+
   return {
     isValid: true,
     errors: [],
@@ -157,6 +171,7 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
       inventory: sanitizedInventory,
       quests: sanitizedQuests,
       skills: sanitizedSkills,
+      bank: sanitizedBank,
       currency: {
         gold: sanitizedGold,
       },
