@@ -10,6 +10,8 @@ export {
 
 export {
   QuestionManager,
+  sharedQuestionManager,
+  sharedQuestionRepository,
   type ImportResult,
 } from './management/QuestionManager';
 

@@ -1,7 +1,5 @@
 import Phaser from 'phaser';
-import { QuestionRepository } from '../questions/retrieval/QuestionRepository';
-import { QuestionManager } from '../questions/management/QuestionManager';
-import { questionStore } from '../storage';
+import { sharedQuestionManager, QuestionManager } from '../questions';
 import { AdminDashboard } from '../ui/admin';
 import { BootScene } from './BootScene';
 import '../ui/admin/admin-dashboard.css';
@@ -28,8 +26,7 @@ export class AdminDashboardScene extends Phaser.Scene {
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d0d1a);
 
-    const repository = new QuestionRepository();
-    this.manager = new QuestionManager(repository, questionStore);
+    this.manager = sharedQuestionManager;
 
     void this.initDashboard();
   }

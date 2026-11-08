@@ -2,8 +2,7 @@ import Phaser from 'phaser';
 import type { MonsterDefinition } from '../core/types/monster';
 import { type PlayerData, playerSessionManager, createPlayerData } from '../player';
 import { BattleSession } from '../combat/BattleSession';
-import { QuestionRepository } from '../questions/retrieval/QuestionRepository';
-import { loadBundledQuestions } from '../questions/retrieval/QuestionLoader';
+import { sharedQuestionRepository } from '../questions';
 import { BattleOverlay } from '../ui/battle-overlay/BattleOverlay';
 import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
@@ -72,15 +71,11 @@ export class BattleScene extends Phaser.Scene {
     // Render placeholder combatants
     this.createCombatantVisuals(width, height);
 
-    // Setup question repository with bundled questions
-    const bundled = loadBundledQuestions();
-    const repo = new QuestionRepository(bundled.questions);
-
-    // Initialize headless BattleSession using active player session managers
+    // Initialize headless BattleSession using effective shared question repository and active player session
     this.session = new BattleSession({
       player: this.player,
       monster: this.monster,
-      repository: repo,
+      repository: sharedQuestionRepository,
       masteryManager: playerSessionManager.mastery,
     });
 

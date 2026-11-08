@@ -1,5 +1,6 @@
 import type { Question } from '../../core/types/question';
 import type { QuestionStore } from '../../storage/QuestionStore';
+import { questionStore } from '../../storage/QuestionStore';
 import type { QuestionValidationError } from './QuestionValidator';
 import { QuestionValidator } from './QuestionValidator';
 import { QuestionRepository } from '../retrieval/QuestionRepository';
@@ -34,10 +35,19 @@ export interface ImportResult {
  * This class is headless — no Phaser or DOM dependencies.
  */
 export class QuestionManager {
+  private initialized = false;
+
   constructor(
     private readonly repository: QuestionRepository,
     private readonly store: QuestionStore,
   ) {}
+
+  /**
+   * Returns whether the manager has completed initialization.
+   */
+  isInitialized(): boolean {
+    return this.initialized;
+  }
 
   /**
    * Returns the underlying in-memory question repository.
@@ -65,10 +75,20 @@ export class QuestionManager {
     const bundled = loadBundledQuestions();
 
     // 2 — Saved questions from IndexedDB
-    const savedQuestions = await this.store.getAll();
+    let savedQuestions: Question[] = [];
+    try {
+      savedQuestions = await this.store.getAll();
+    } catch (err) {
+      console.warn('[QuestionManager] Failed to load saved questions from store:', err);
+    }
 
     // 3 — Tombstones (IDs of bundled questions that were soft-deleted)
-    const tombstones = new Set(await this.store.getTombstones());
+    let tombstones = new Set<string>();
+    try {
+      tombstones = new Set(await this.store.getTombstones());
+    } catch (err) {
+      console.warn('[QuestionManager] Failed to load tombstones from store:', err);
+    }
 
     // 4 — Filter out tombstoned bundled questions
     const liveBundled = bundled.questions.filter(
@@ -76,17 +96,26 @@ export class QuestionManager {
     );
 
     // 5 — Merge: start with bundled, overlay IndexedDB (wins on ID collision)
+    // Only overlay valid questions from IndexedDB
     const mergedMap = new Map<string, Question>();
 
     for (const q of liveBundled) {
       mergedMap.set(q.id, q);
     }
     for (const q of savedQuestions) {
-      mergedMap.set(q.id, q);
+      if (!tombstones.has(q.id)) {
+        const val = QuestionValidator.validate(q);
+        if (val.isValid) {
+          mergedMap.set(q.id, q);
+        } else {
+          console.warn(`[QuestionManager] Skipping invalid stored question "${q.id}":`, val.errors);
+        }
+      }
     }
 
     // 6 — Populate repository
     this.repository.setQuestions([...mergedMap.values()]);
+    this.initialized = true;
   }
 
   // ─── Create ──────────────────────────────────────────────────────────────────
@@ -304,3 +333,17 @@ export class QuestionManager {
     return JSON.stringify(this.repository.getAll(), null, 2);
   }
 }
+
+// ─── Shared Global Singletons ──────────────────────────────────────────────────
+
+/** Shared runtime QuestionRepository for the entire application. */
+export const sharedQuestionRepository = new QuestionRepository();
+
+/**
+ * Shared runtime QuestionManager instance.
+ * Connects the default questionStore (IndexedDB) with the shared QuestionRepository.
+ */
+export const sharedQuestionManager = new QuestionManager(
+  sharedQuestionRepository,
+  questionStore,
+);

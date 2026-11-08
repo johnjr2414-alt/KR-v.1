@@ -3,6 +3,7 @@ import { GAME_TITLE, GAME_VERSION } from '../constants';
 import { StartMenu } from '../ui/start-menu';
 import { roleManager, AppRole } from '../core/roles';
 import { playerSessionManager } from '../player';
+import { sharedQuestionManager } from '../questions';
 import { VillageScene } from './VillageScene';
 import { AdminDashboardScene } from './AdminDashboardScene';
 import '../ui/start-menu/start-menu.css';
@@ -65,9 +66,13 @@ export class BootScene extends Phaser.Scene {
     this.loadingText?.setVisible(true);
 
     try {
-      await playerSessionManager.initializeSession();
+      // Parallel bootstrap of player save session and shared question repository
+      await Promise.all([
+        playerSessionManager.initializeSession(),
+        sharedQuestionManager.initialize(),
+      ]);
     } catch (err) {
-      console.error('[BootScene] Error initializing player session:', err);
+      console.error('[BootScene] Error initializing game session / question repository:', err);
     } finally {
       this.loadingText?.setVisible(false);
       this.scene.start(VillageScene.KEY);
