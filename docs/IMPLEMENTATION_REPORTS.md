@@ -671,6 +671,47 @@ A headless `CombatSkillTracker` was developed to manage turn-based cooldowns, ti
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 23.4 — Passive Skills and Mastery Unlocks
+
+**Date**: 2026-11-08  
+**Phase**: 23.4  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 23.4 implements passive skills and their safe integration into derived stats, equipment calculations, and combat encounters without ever violating core game design principles.
+
+A headless `PassiveSkillCalculator` service was developed to compute aggregated passive bonuses:
+- **Base Stat Invariance**: `PlayerData` base stats are never mutated directly; derived attributes are computed in an immutable modifier pipeline.
+- **Delineated Modifiers**: Base stats, equipment bonuses, and passive bonuses remain cleanly distinguished in `EquipmentStatCalculator`.
+- **Deduplication Guarantee**: Unlocked passives apply strictly once at their current level.
+- **Safety Caps**: Enforced maximum caps (e.g., 50% crit rate, 50% mana cost reduction, 3.0x EXP multiplier) prevent balance exploits.
+- **Mode Validation**: PvP-only skills do not activate in PvE combat.
+- **Combat Integration**: Passive defense decreases incoming monster damage; passive crit chance augments player critical attacks; passive mana cost reduction lowers active skill MP costs; passive EXP multipliers scale victory combat EXP rewards.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/skills/PassiveSkillCalculator.ts`: Headless passive calculator with deduplication, mode checking, and safety caps.
+  - `tests/skills/phase23_4_passive_skills.test.ts`: 8 comprehensive tests covering base stat invariance, distinct layers, deduplication, stacking, safety caps, mode eligibility, and BattleSession combat integration.
+  - `docs/PHASE_23_4_IMPLEMENTATION_REPORT.md`: Standalone report.
+- **Modified Files**:
+  - `src/inventory/EquipmentStatCalculator.ts`: Extended `calculateEffectiveStats` to accept passive bonuses and include them distinctly in `EffectiveCharacterStats`.
+  - `src/skills/index.ts`: Exported `PassiveSkillCalculator` and `passiveSkillCalculator`.
+  - `src/combat/BattleSession.ts`: Integrated passive defense, crit rate, mana reduction, and EXP multiplier.
+  - `tests/combat/phase23_3_active_skills.test.ts`: Configured question count to 5 for multi-turn cooldown regression test.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master report updated with Phase 23.4.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **48 test files passed** (450 tests passed, 0 failures).
+  - `tests/skills/phase23_4_passive_skills.test.ts`: 8/8 passed.
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 

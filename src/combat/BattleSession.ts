@@ -25,7 +25,7 @@ import type { MasteryGainResult } from '../core/types/mastery';
 import { RewardCalculator, rewardCalculator } from './rewards/RewardCalculator';
 import type { MonsterRewardResult } from './rewards/RewardTypes';
 import { CombatSkillTracker, type SkillActivationResult } from './CombatSkillTracker';
-import { SkillManager, getSkillDefinition } from '../skills';
+import { SkillManager, getSkillDefinition, passiveSkillCalculator, type PassiveSkillBonuses } from '../skills';
 
 export interface BattleSessionOptions {
   player: PlayerData;
@@ -57,6 +57,7 @@ export class BattleSession {
   private readonly rewards: RewardCalculator;
   private readonly skillManager?: SkillManager;
   private readonly skillTracker: CombatSkillTracker = new CombatSkillTracker();
+  private readonly passiveBonuses: PassiveSkillBonuses;
   private currentStreak = 0;
   private pendingMasteryGains: MasteryGainResult[] = [];
   private victoryRewards: MonsterRewardResult | null = null;
@@ -88,10 +89,17 @@ export class BattleSession {
       totalQuestionCount,
     );
 
-    // 4. Initialize State
+    // Calculate passive bonuses without mutating base player
+    this.passiveBonuses = passiveSkillCalculator.calculatePassiveBonuses(options.skillManager, 'pve');
+
+    // 4. Initialize State with derived effective combat attributes (base + passive modifiers)
     this.state = {
       id: crypto.randomUUID(),
-      player: { ...options.player },
+      player: {
+        ...options.player,
+        defense: options.player.defense + this.passiveBonuses.flatDefense,
+        critRate: options.player.critRate + (this.passiveBonuses.critRatePercent / 100),
+      },
       monster: { ...options.monster },
       playerCurrentHp: options.player.currentHp,
       playerMaxHp: options.player.maxHp,
@@ -115,6 +123,13 @@ export class BattleSession {
    */
   getSkillTracker(): CombatSkillTracker {
     return this.skillTracker;
+  }
+
+  /**
+   * Retrieves the active passive skill bonuses applied to this battle encounter.
+   */
+  getPassiveBonuses(): PassiveSkillBonuses {
+    return this.passiveBonuses;
   }
 
   /**
@@ -159,18 +174,23 @@ export class BattleSession {
       };
     }
 
-    // Check MP
-    if (this.state.playerCurrentMp < lvlConfig.mpCost) {
+    // Check MP (accounting for passive mana-cost-reduction-percent)
+    const effectiveMpCost = Math.max(
+      1,
+      Math.floor(lvlConfig.mpCost * (1 - this.passiveBonuses.manaCostReductionPercent / 100)),
+    );
+
+    if (this.state.playerCurrentMp < effectiveMpCost) {
       return {
         success: false,
-        error: `Insufficient MP. Required: ${lvlConfig.mpCost}, Available: ${this.state.playerCurrentMp}`,
+        error: `Insufficient MP. Required: ${effectiveMpCost}, Available: ${this.state.playerCurrentMp}`,
         skillId,
-        mpCost: lvlConfig.mpCost,
+        mpCost: effectiveMpCost,
       };
     }
 
     // Deduct MP only after validation passes
-    this.state.playerCurrentMp -= lvlConfig.mpCost;
+    this.state.playerCurrentMp -= effectiveMpCost;
 
     // Apply effects
     const { shieldGained, healAmount } = this.skillTracker.applySkill(def, skillLevel);
@@ -186,7 +206,7 @@ export class BattleSession {
     return {
       success: true,
       skillId,
-      mpCost: lvlConfig.mpCost,
+      mpCost: effectiveMpCost,
       message,
     };
   }
@@ -304,10 +324,11 @@ export class BattleSession {
     // 3. Check termination conditions
     if (this.state.monsterCurrentHp <= 0) {
       this.state.status = BattleStatus.Victory;
-      // Calculate and emit victory rewards
+      // Calculate and emit victory rewards (scaling expMultiplier by passive expMultiplier)
+      const effectiveExpMultiplier = this.state.profile.rewardMultiplier * this.passiveBonuses.expMultiplier;
       this.victoryRewards = this.rewards.calculateRewards(
         this.state.monster,
-        this.state.profile.rewardMultiplier,
+        effectiveExpMultiplier,
       );
       this.rewards.emitMonsterDefeated(this.state.monster, this.victoryRewards);
     } else if (this.state.playerCurrentHp <= 0) {

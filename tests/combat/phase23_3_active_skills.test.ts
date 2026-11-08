@@ -92,6 +92,7 @@ describe('Phase 23.3 — Active Skills and Combat Integration', () => {
       monster,
       repository: repo,
       skillManager,
+      fixedQuestionCount: 5,
     });
   });
 
