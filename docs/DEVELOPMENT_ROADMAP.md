@@ -9,45 +9,45 @@ This roadmap organizes the incremental development of Knowledge Realms into 21 o
 ```
 Phase 0: Project Documentation [COMPLETED]
    ↓
-Phase 1: Project Foundation [IN PROGRESS]
+Phase 1: Project Foundation [COMPLETED]
    ↓
-Phase 2: Application Structure & Architecture
+Phase 2: Application Structure & Architecture [COMPLETED]
    ↓
-Phase 3: Role Selection (User vs. Super Admin)
+Phase 3: Role Selection (User vs. Super Admin) [COMPLETED]
    ↓
-Phase 4: Player Data & Character Progression
+Phase 4: Player Data & Character Progression [COMPLETED]
    ↓
-Phase 5: World & Beginners Village Scene
+Phase 5: World & Beginners Village Scene [COMPLETED]
    ↓
-Phase 6: Subject Guild Buildings & Zones
+Phase 6: Subject Guild Buildings & Zones [COMPLETED]
    ↓
-Phase 7: Monster System & Definitions
+Phase 7: Monster System & Definitions [COMPLETED]
    ↓
-Phase 8: Question Database & Schemas
+Phase 8: Question Database & Schemas [COMPLETED]
    ↓
-Phase 9: Super Admin Question Management Dashboard
+Phase 9: Super Admin Question Management Dashboard [COMPLETED]
    ↓
-Phase 10: Question Interface & Modal Presentation
+Phase 10: Question Interface & Modal Presentation [COMPLETED]
    ↓
-Phase 11: PvE Question Difficulty Engine
+Phase 11: PvE Question Difficulty Engine [COMPLETED]
    ↓
-Phase 12: Combat Engine & Battle Scene
+Phase 12: Combat Engine & Battle Scene [COMPLETED]
    ↓
-Phase 13: Subject Knowledge Mastery System
+Phase 13: Subject Knowledge Mastery System [COMPLETED]
    ↓
-Phase 14: Monster Rewards (EXP, Drops, Gold)
+Phase 14: Monster Rewards (EXP, Drops, Gold) [COMPLETED]
    ↓
-Phase 15: Inventory & Equipment Systems
+Phase 15: Inventory & Equipment Systems [COMPLETED]
    ↓
-Phase 16: Quests & Village NPCs
+Phase 16: Quests & Village NPCs [COMPLETED]
    ↓
-Phase 17: Local Storage & Offline IndexedDB Persistence
+Phase 17: Local Storage & Offline IndexedDB Persistence [COMPLETED]
    ↓
-Phase 18: Local Economy & Commerce
+Phase 18: Local Economy & Commerce [COMPLETED]
    ↓
-Phase 19: Arena & Future PvP Architecture
+Phase 19: Arena & Future PvP Architecture [COMPLETED]
    ↓
-Phase 20: End-to-End Integration & Polish
+Phase 20: End-to-End Integration & Polish [COMPLETED]
 ```
 
 ---
@@ -137,48 +137,48 @@ Phase 20: End-to-End Integration & Polish
 - [ ] **Task 12.3**: Implement player attack damage formula on correct answers.
 - [ ] **Task 12.4**: Create `BattleScene` visual overlay coordinating with HTML Question Modal.
 - [ ] **Task 12.5**: Wire combat attack animations, hit splats, and audio triggers.
-- [ ] **Task 12.6**: Implement victory resolution and reward dispatching.
-- [ ] **Task 12.7**: Implement defeat resolution and village respawn.
-- [ ] **Task 12.8**: Unit test complete battle scenarios headlessly.
+- [x] **Task 12.6**: Implement victory resolution and reward dispatching.
+- [x] **Task 12.7**: Implement defeat resolution and village respawn.
+- [x] **Task 12.8**: Unit test complete battle scenarios headlessly.
 
 ### Phase 13: Knowledge Mastery
-- [ ] **Task 13.1**: Implement independent `MasteryManager` tracking subject EXP pools.
-- [ ] **Task 13.2**: Implement performance-based multiplier formula (speed, accuracy, streaks).
-- [ ] **Task 13.3**: Build UI Mastery Summary panel in the player menu.
-- [ ] **Task 13.4**: Unit test mastery calculations and verify strict separation from character EXP.
+- [x] **Task 13.1**: Implement independent `MasteryManager` tracking subject EXP pools.
+- [x] **Task 13.2**: Implement performance-based multiplier formula (speed, accuracy, streaks).
+- [x] **Task 13.3**: Build UI Mastery Summary panel in the player menu.
+- [x] **Task 13.4**: Unit test mastery calculations and verify strict separation from character EXP.
 
 ### Phase 14: Monster Rewards
-- [ ] **Task 14.1**: Implement Combat EXP distribution and level-up triggers.
-- [ ] **Task 14.2**: Implement Gold and item drop table roller.
-- [ ] **Task 14.3**: Implement battle victory summary screen.
+- [x] **Task 14.1**: Implement Combat EXP distribution and level-up triggers.
+- [x] **Task 14.2**: Implement Gold and item drop table roller.
+- [x] **Task 14.3**: Implement battle victory summary screen.
 
 ### Phase 15: Inventory and Equipment
-- [ ] **Task 15.1**: Implement slot-based inventory data model.
-- [ ] **Task 15.2**: Implement equipment slots and stat modification calculations.
-- [ ] **Task 15.3**: Build inventory & character equipment UI overlay.
-- [ ] **Task 15.4**: Unit test equipping, unequipping, and stat recalculations.
+- [x] **Task 15.1**: Implement slot-based inventory data model.
+- [x] **Task 15.2**: Implement equipment slots and stat modification calculations.
+- [x] **Task 15.3**: Build inventory & character equipment UI overlay.
+- [x] **Task 15.4**: Unit test equipping, unequipping, and stat recalculations.
 
 ### Phase 16: Quests and NPCs
-- [ ] **Task 16.1**: Implement dialogue tree runner for Village NPCs.
-- [ ] **Task 16.2**: Implement beginner questline tracking (talk to teacher, defeat slimes).
-- [ ] **Task 16.3**: Add quest journal UI.
+- [x] **Task 16.1**: Implement dialogue tree runner for Village NPCs.
+- [x] **Task 16.2**: Implement beginner questline tracking (talk to teacher, defeat slimes).
+- [x] **Task 16.3**: Add quest journal UI.
 
 ### Phase 17: Local Storage and Offline Support
-- [ ] **Task 17.1**: Implement IndexedDB wrapper with transaction safety.
-- [ ] **Task 17.2**: Implement auto-save and manual save serialization for player and mastery state.
-- [ ] **Task 17.3**: Verify full offline reload and state restoration.
+- [x] **Task 17.1**: Implement IndexedDB wrapper with transaction safety.
+- [x] **Task 17.2**: Implement auto-save and manual save serialization for player and mastery state.
+- [x] **Task 17.3**: Verify full offline reload and state restoration.
 
 ### Phase 18: Economy
-- [ ] **Task 18.1**: Implement Village Merchant shop (buy/sell items with Gold).
-- [ ] **Task 18.2**: Implement village bank with deposit interest.
-- [ ] **Task 18.3**: Implement player-owned storefront prototype.
-- [ ] **Task 18.4**: Add tamper-resistant offline income calculation.
+- [x] **Task 18.1**: Implement Village Merchant shop (buy/sell items with Gold).
+- [x] **Task 18.2**: Implement village bank with deposit interest.
+- [x] **Task 18.3**: Implement player-owned storefront prototype.
+- [x] **Task 18.4**: Add tamper-resistant offline income calculation.
 
 ### Phase 19: Arena and Future PvP Preparation
-- [ ] **Task 19.1**: Define PvP reverse-difficulty rule interface.
-- [ ] **Task 19.2**: Scaffold Colosseum / Arena mock duel scene.
+- [x] **Task 19.1**: Define PvP reverse-difficulty rule interface.
+- [x] **Task 19.2**: Scaffold Colosseum / Arena mock duel scene.
 
 ### Phase 20: Testing, Polish, and Full Loop Verification
-- [ ] **Task 20.1**: Run comprehensive headless test suite across all modules.
-- [ ] **Task 20.2**: Verify end-to-end user loop: Start -> Explore -> Battle -> Level Up -> Admin Edit -> Reload.
-- [ ] **Task 20.3**: Production build optimization and package inspection.
+- [x] **Task 20.1**: Run comprehensive headless test suite across all modules.
+- [x] **Task 20.2**: Verify end-to-end user loop: Start -> Explore -> Battle -> Level Up -> Admin Edit -> Reload.
+- [x] **Task 20.3**: Production build optimization and package inspection.

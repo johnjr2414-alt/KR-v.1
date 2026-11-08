@@ -8,14 +8,18 @@ This document defines the strict boundary, files, dependencies, and prohibitions
 
 | Module | Core Responsibility | Files Owned | Prohibited Coupling |
 |---|---|---|---|
-| **Core Progression** | Character level, stats, combat EXP curves | `src/core/progression/*` | No Phaser scenes, no Mastery EXP |
-| **Core Mastery** | Subject tracking, mastery EXP calculation | `src/core/mastery/*` | No Character EXP, no Phaser rendering |
-| **Core Combat** | Battle math, turn/timer resolution, damage | `src/core/combat/*` | No direct DOM manipulation, no Phaser sprites |
+| **Core Progression** | Character level, stats, combat EXP curves | `src/core/progression/*`, `src/player/*` | No Phaser scenes, no Mastery EXP |
+| **Core Mastery** | Subject tracking, mastery EXP calculation | `src/mastery/*` | No Character EXP, no Phaser rendering |
+| **Core Combat** | Battle math, turn/timer resolution, damage | `src/combat/*` | No direct DOM manipulation, no Phaser sprites |
 | **Question Retrieval** | PvE question sampling, difficulty calculation | `src/questions/retrieval/*` | No Admin CRUD, no Phaser dependencies |
 | **Question Management** | Question CRUD, schema validation, import/export | `src/questions/management/*` | No combat execution, no Phaser rendering |
-| **Storage / Persistence** | IndexedDB read/write, saving, migrations | `src/storage/*` | No game rules, no battle state |
+| **Inventory & Gear** | Items, equipment slots, stat bonuses, bag storage | `src/inventory/*` | No Phaser sprites, immutable player base stats |
+| **Quests & NPCs** | NPC dialogue, quest tracking, monster kill / collection objectives | `src/quests/*` | Decoupled from UI via events |
+| **Economy** | Gold purse, shops, banking, investments, businesses | `src/economy/*` | No negative balances, offline calculations |
+| **Arena & PvP** | Tournament models, Reverse-Difficulty calculation | `src/arena/*` | Isolated from PvE difficulty engine |
+| **Storage / Persistence** | IndexedDB read/write, saving, settings, validators | `src/storage/*` | No game rules, no battle state |
 | **Presentation / Scenes** | 2D tilemaps, camera, sprites, input handling | `src/scenes/*` | Must not be authoritative on stats or math |
-| **UI Components** | HTML HUD, question modals, admin dashboard | `src/ui/*` | Must not alter core rules directly |
+| **UI Components** | HTML HUD, question modals, admin dashboard, overlays | `src/ui/*` | Must not alter core rules directly |
 
 ---
 
