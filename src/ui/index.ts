@@ -10,3 +10,4 @@ export { ExplorationHUD, type ExplorationHUDOptions, ExplorationUIManager, type 
 export { ShopModal, type ShopModalOptions } from './shop-modal';
 export { PauseModal, type PauseModalOptions } from './pause-modal';
 export { QuestJournal, type QuestJournalOptions } from './quest-journal';
+import './accessibility.css';

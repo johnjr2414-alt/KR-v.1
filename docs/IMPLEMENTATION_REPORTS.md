@@ -538,6 +538,38 @@ Because the project currently has no static audio files (`.mp3`, `.ogg`, `.wav`)
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 22.5 — Responsive UI and Accessibility
+
+**Date**: 2026-11-08  
+**Phase**: 22.5  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 22.5 implements responsive adaptations, accessibility compliance, and screen form-factor handling across the HTML/CSS DOM overlays and Phaser canvas presentation.
+
+Styles were added in `accessibility.css` to enforce keyboard focus rings (`:focus-visible`), readable contrast tokens, modal bounds clamping (`max-width: 95vw; max-height: 95vh; overflow-y: auto`), screen-reader helpers (`.sr-only`), and system-level reduced motion support (`@media (prefers-reduced-motion: reduce)`). Pure layout helpers in `responsiveLayout.ts` classify viewports into form factors (`compact`, `standard`, `wide`, `ultrawide`) and clamp modal bounds.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/ui/accessibility.css`: Global styles for interactive focus rings, screen-reader text, reduced-motion overrides, and responsive modal bounds.
+  - `src/ui/responsiveLayout.ts`: Pure headless layout helpers (`classifyScreenFormFactor`, `computeModalBounds`).
+  - `tests/ui/phase22_5_responsive_ui.test.ts`: Automated unit test suite verifying form factor classification and modal dimension clamping.
+  - `docs/PHASE_22_5_IMPLEMENTATION_REPORT.md`: Standalone report with resolution test matrix.
+- **Modified Files**:
+  - `src/ui/index.ts`: Imported `accessibility.css`.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master implementation report updated with Phase 22.5.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **44 test files passed** (416 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 
