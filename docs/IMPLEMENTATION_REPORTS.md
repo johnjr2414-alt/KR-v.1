@@ -134,3 +134,65 @@ A unified effective question architecture was established via shared singleton i
   1. In Super Admin, delete a bundled question.
   2. Exit to Start Menu and launch "User" gameplay.
   3. Engage monsters and verify the deleted question never appears.
+
+---
+
+# Phase 21.4 — Exploration HUD, Player Panels, and Keyboard Shortcuts
+
+**Date**: 2026-11-08  
+**Phase**: 21.4  
+**Status**: Implemented — manual verification pending  
+
+### 1. Executive Summary
+Phase 21.4 introduces a persistent exploration HUD and integrates the existing Inventory (`InventoryPanel`) and Mastery (`MasteryPanel`) overlays directly into gameplay scenes (`VillageScene` and `HuntingScene`).
+
+Player movement is cleanly frozen while any overlay is active, keyboard shortcuts (`I` for inventory, `M` for mastery) are coordinated without repeat clobbering, and shortcut triggers are suppressed while the user is typing into input fields. Changes made in the panels (such as equipping/unequipping gear) automatically update stats, refresh HUD values, and trigger session auto-saves.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/ui/exploration-hud/ExplorationHUD.ts`: Persistent HTML/CSS DOM overlay displaying character name, level, HP (current/max with percentage bar), MP (current/max with percentage bar), character level EXP progress, Gold balance (reactive via `currency.onBalanceChange`), and quick-access buttons for Bag and Mastery.
+  - `src/ui/exploration-hud/exploration-hud.css`: Clean, dark fantasy styling for the HUD card and progress bars with pointer-event click-through for non-interactive areas.
+  - `src/ui/exploration-hud/ExplorationUIManager.ts`: Coordinator managing HUD lifecycle, modal transitions, shortcut listeners (`I`, `M`), and input freeze states.
+  - `src/ui/exploration-hud/index.ts`: Public exports for `ExplorationHUD` and `ExplorationUIManager`.
+  - `tests/ui/phase21_4_exploration_hud.test.ts`: Automated unit tests covering bar clamping/calculations, reactive gold change notifications, and equipment stat calculation through `InventoryManager`.
+- **Modified Files**:
+  - `src/player/movement/PhaserInputAdapter.ts`: Added `setInputEnabled(boolean)` and `isInputEnabled(): boolean` to freeze player controls when panels are open.
+  - `src/ui/index.ts`: Exported `ExplorationHUD` and `ExplorationUIManager`.
+  - `src/scenes/VillageScene.ts`: Attached `ExplorationUIManager` during `create()`, moved zone title to top-right to prevent overlap with HUD, prevented player movement while panels are open, and safely cleaned up UI in `shutdown()`.
+  - `src/scenes/HuntingScene.ts`: Attached `ExplorationUIManager` during `create()`, moved zone title to top-right, prevented movement during open panels, and destroyed UI in `shutdown()`.
+
+### 3. Key Design Decisions
+- **Unified Exploration UI Coordinator**:
+  - Encapsulated HUD instantiation, keyboard shortcut listeners, panel exclusivity (opening one panel automatically closes any other), and movement freezing in `ExplorationUIManager`.
+- **Input Field Protection**:
+  - Checked `document.activeElement` for `input`, `textarea`, or `contenteditable` before handling `I` or `M` shortcuts to prevent hotkey triggers while typing.
+- **Quest Journal Deferred**:
+  - Per the handbook instructions, Quest Journal (`Q` keybinding) is explicitly deferred to **Phase 21.7** rather than scaffolding an incomplete temporary panel.
+- **Equipment Changes & Stat Reflection**:
+  - Equipping or unequipping items triggers `onStateChange()`, which immediately recalculates effective stats, invokes `playerSessionManager.saveSession()`, and refreshes the HUD display.
+
+### 4. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **35 test files passed** (373 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors.
+
+### 5. Manual Verification Checklist (For Browser Testing)
+- [ ] **HUD Visibility & Accuracy**:
+  1. Boot game as "User".
+  2. Confirm HUD appears in top-left in Beginners Village.
+  3. Verify character name, level (1), HP (100/100), MP (50/50), EXP bar, and Gold balance (100 G) are accurately rendered.
+  4. Walk into Beginners Hunting Ground. Confirm HUD persists accurately and does not duplicate.
+- [ ] **Hotkeys & Buttons**:
+  1. Press `I` to open the Inventory panel. Verify character movement ceases.
+  2. Press `I` again or click Close to dismiss the inventory. Verify movement resumes.
+  3. Press `M` to open the Mastery panel. Verify subject accuracies and levels are displayed.
+  4. Press `M` again to close it.
+  5. Click the "🎒 Bag" and "📖 Mastery" buttons on the HUD with the mouse to confirm point-and-click functionality.
+- [ ] **Equipment Changes**:
+  1. Open Inventory (`I`), equip a weapon (e.g. `wooden-sword`).
+  2. Confirm equipment slot reflects the sword and player stats update.
+  3. Close inventory and refresh page; confirm equipped state persists.
+

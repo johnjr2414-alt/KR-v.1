@@ -12,6 +12,7 @@ export class PhaserInputAdapter {
     S: Phaser.Input.Keyboard.Key;
     D: Phaser.Input.Keyboard.Key;
   } | null = null;
+  private inputEnabled = true;
 
   constructor(scene: Phaser.Scene) {
     if (scene.input && scene.input.keyboard) {
@@ -25,7 +26,19 @@ export class PhaserInputAdapter {
     }
   }
 
+  setInputEnabled(enabled: boolean): void {
+    this.inputEnabled = enabled;
+  }
+
+  isInputEnabled(): boolean {
+    return this.inputEnabled;
+  }
+
   getInputState(): MovementInputState {
+    if (!this.inputEnabled) {
+      return { up: false, down: false, left: false, right: false };
+    }
+
     const up = Boolean(this.cursors?.up.isDown || this.wasdKeys?.W.isDown);
     const down = Boolean(this.cursors?.down.isDown || this.wasdKeys?.S.isDown);
     const left = Boolean(this.cursors?.left.isDown || this.wasdKeys?.A.isDown);

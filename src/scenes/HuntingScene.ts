@@ -7,6 +7,7 @@ import type { SceneTransitionData } from './VillageScene';
 import { monsterSpawner } from '../monsters';
 import { MonsterSprite } from './monsters/MonsterSprite';
 import type { MonsterDefinition } from '../core/types/monster';
+import { ExplorationUIManager } from '../ui/exploration-hud';
 
 /** Number of monsters to spawn per zone visit. */
 const MONSTERS_PER_ZONE = 6;
@@ -40,6 +41,7 @@ export class HuntingScene extends Phaser.Scene {
   private nearbyMonster: MonsterSprite | null = null;
   /** Interaction keys. */
   private interactKey!: Phaser.Input.Keyboard.Key;
+  private explorationUI: ExplorationUIManager | null = null;
 
   constructor() {
     super({ key: HuntingScene.KEY });
@@ -105,27 +107,33 @@ export class HuntingScene extends Phaser.Scene {
 
     this.inputAdapter = new PhaserInputAdapter(this);
 
+    // ── Exploration HUD and Panels Coordinator ──────────────────
+    this.explorationUI = new ExplorationUIManager({
+      scene: this,
+      inputAdapter: this.inputAdapter,
+      playerSprite: this.player,
+    });
+
     this.cameras.main.setBounds(0, 0, width, height);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
-    // HUD
+    // Zone title label (top right to avoid overlapping HUD)
     const zoneName = this.zoneData.name ?? this.mapData.name;
-    const hud = this.add.text(
-      16, 16,
+    this.add.text(
+      width - 16, 16,
       `${zoneName}  (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
       {
         fontFamily: 'Arial',
-        fontSize: '16px',
+        fontSize: '14px',
         color: '#ef4444',
         backgroundColor: '#111827dd',
         padding: { x: 8, y: 4 },
       },
-    );
-    hud.setScrollFactor(0);
+    ).setScrollFactor(0).setOrigin(1, 0);
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player || !this.player.body) return;
+    if (this.isTransitioning || !this.player || !this.player.body || this.explorationUI?.isPanelOpen()) return;
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
@@ -325,5 +333,10 @@ export class HuntingScene extends Phaser.Scene {
         }
       }
     });
+  }
+
+  shutdown(): void {
+    this.explorationUI?.destroy();
+    this.explorationUI = null;
   }
 }

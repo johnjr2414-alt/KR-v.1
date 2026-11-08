@@ -6,3 +6,4 @@ export { BattleOverlay, type BattleOverlayOptions } from './battle-overlay';
 export { MasteryPanel, type MasteryPanelOptions } from './mastery-panel';
 export { InventoryPanel, type InventoryPanelOptions } from './inventory-panel';
 export { NPCDialogueModal, type NPCDialogueModalOptions } from './npc-dialogue';
+export { ExplorationHUD, type ExplorationHUDOptions, ExplorationUIManager, type ExplorationUIManagerOptions } from './exploration-hud';

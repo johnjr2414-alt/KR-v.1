@@ -7,6 +7,7 @@ import { calculateMovementVelocity, DEFAULT_MOVE_SPEED, playerSessionManager } f
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import { ZoneWarningModal } from '../ui/zone-warning';
 import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
+import { ExplorationUIManager } from '../ui/exploration-hud';
 import { getNPCsForMap } from '../quests/NPCRegistry';
 import type { NPCDefinition } from '../quests/NPCTypes';
 import '../ui/zone-warning/zone-warning.css';
@@ -52,6 +53,7 @@ export class VillageScene extends Phaser.Scene {
   private nearbyNPC: NPCDefinition | null = null;
   private activeDialogueModal: NPCDialogueModal | null = null;
   private npcs: NPCDefinition[] = [];
+  private explorationUI: ExplorationUIManager | null = null;
 
   constructor() {
     super({ key: VillageScene.KEY });
@@ -118,16 +120,18 @@ export class VillageScene extends Phaser.Scene {
       padding: { x: 8, y: 5 },
     }).setDepth(10).setVisible(false);
 
-    // ── HUD ──────────────────────────────────────────────────────
-    this.add.text(16, 16,
-      `${this.mapData.name} (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
-      { fontFamily: 'Arial', fontSize: '16px', color: '#f0c060', backgroundColor: '#111827dd', padding: { x: 8, y: 4 } },
-    ).setScrollFactor(0);
+    // ── Exploration HUD and Panels Coordinator ──────────────────
+    this.explorationUI = new ExplorationUIManager({
+      scene: this,
+      inputAdapter: this.inputAdapter,
+      playerSprite: this.player,
+    });
 
-    this.add.text(16, 46, 'Move: WASD / Arrow Keys  |  Approach buildings to interact', {
-      fontFamily: 'Arial', fontSize: '12px', color: '#9ca3af',
-      backgroundColor: '#111827aa', padding: { x: 6, y: 2 },
-    }).setScrollFactor(0);
+    // ── Zone title label ─────────────────────────────────────────
+    this.add.text(this.scale.width - 16, 16,
+      `${this.mapData.name} (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
+      { fontFamily: 'Arial', fontSize: '14px', color: '#f0c060', backgroundColor: '#111827dd', padding: { x: 8, y: 4 } },
+    ).setScrollFactor(0).setOrigin(1, 0);
 
     // ── Interact key (Space / Enter) ─────────────────────────────
     if (this.input.keyboard) {
@@ -137,7 +141,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal) return;
+    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.explorationUI?.isPanelOpen()) return;
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
@@ -433,6 +437,8 @@ export class VillageScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    this.explorationUI?.destroy();
+    this.explorationUI = null;
     this.zoneWarningModal.destroy();
     this.activeDialogueModal?.destroy();
     this.activeDialogueModal = null;
