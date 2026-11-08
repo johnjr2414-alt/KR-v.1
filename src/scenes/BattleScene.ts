@@ -84,6 +84,7 @@ export class BattleScene extends Phaser.Scene {
       monster: this.monster,
       repository: sharedQuestionRepository,
       masteryManager: playerSessionManager.mastery,
+      skillManager: playerSessionManager.skills,
     });
 
     // Create DOM Battle HUD overlay
@@ -262,8 +263,9 @@ export class BattleScene extends Phaser.Scene {
     if (!this.rewardsProcessed) {
       this.rewardsProcessed = true;
 
-      // Sync remaining HP to active player
+      // Sync remaining HP & MP to active player
       this.player.currentHp = summary.remainingPlayerHp;
+      this.player.currentMp = summary.remainingPlayerMp;
 
       if (summary.monsterDefeated) {
         // 1. Award combat EXP via ProgressionService

@@ -638,6 +638,40 @@ Directed Acyclic Graph (DAG) structures were established with explicit root node
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 23.3 — Active Skills and Combat Integration
+
+**Date**: 2026-11-08  
+**Phase**: 23.3  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 23.3 integrates active skills into the headless combat system (`BattleSession`) and visual combat scenes (`BattleScene`) in Knowledge Realms, strictly adhering to the directive that **skills modify player and monster parameters but NEVER bypass educational question answering**.
+
+A headless `CombatSkillTracker` was developed to manage turn-based cooldowns, timed buffs (e.g., percentage damage amplifications), and active shield damage absorption across combat turns. `BattleSession.activateSkill` provides strict activation gating: verifying battle state machine validity, skill availability, unlock records, turn cooldowns, and MP costs (deducting MP only when accepted). Successful answers apply damage multipliers, incorrect answers or timeouts check shield absorption before damaging player HP, and end-of-turn advancement decrements cooldowns and buff counters. Combat end summaries now record remaining player MP alongside remaining HP and synchronise back to the active `PlayerSessionManager`.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/combat/CombatSkillTracker.ts`: Headless combat skill modifier tracker handling cooldowns, buffs (`ActiveBuff`), shield absorption (`absorbDamage`), and turn advancement (`advanceTurn`).
+  - `tests/combat/phase23_3_active_skills.test.ts`: 13 comprehensive unit tests covering activation validation, MP deduction, cooldowns, passive/PvP restrictions, damage boosting, shield absorption, direct healing, turn advancement, and end summary MP tracking.
+  - `docs/PHASE_23_3_IMPLEMENTATION_REPORT.md`: Standalone report.
+- **Modified Files**:
+  - `src/combat/BattleState.ts`: Added `playerCurrentMp` and `playerMaxMp` to `BattleState`, and `remainingPlayerMp` to `BattleEndSummary`.
+  - `src/combat/BattleSession.ts`: Added `skillManager?: SkillManager` and `skillTracker: CombatSkillTracker`; implemented `activateSkill()`; integrated damage multiplier, shield absorption, and turn advancement.
+  - `src/scenes/BattleScene.ts`: Injected `skillManager: playerSessionManager.skills` into `BattleSession`; synced `this.player.currentMp = summary.remainingPlayerMp` on battle conclusion.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master report updated with Phase 23.3.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **47 test files passed** (442 tests passed, 0 failures).
+  - `tests/combat/phase23_3_active_skills.test.ts`: 13/13 passed.
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 
