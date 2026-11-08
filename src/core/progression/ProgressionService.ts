@@ -9,6 +9,10 @@ import {
   type StatGrowthConfig,
 } from '../../config/statGrowthConfig';
 import {
+  DEFAULT_STAT_ALLOCATION_CONFIG,
+  type StatAllocationConfig,
+} from '../../config/statAllocationConfig';
+import {
   applyLevelStatsToPlayer,
 } from './StatGrowthService';
 
@@ -20,6 +24,7 @@ export interface LevelUpEvent {
   previousLevel: number;
   newLevel: number;
   levelsGained: number;
+  statPointsAwarded: number;
   player: PlayerData;
 }
 
@@ -43,20 +48,23 @@ export type LevelUpListener = (event: LevelUpEvent) => void;
 export interface ProgressionServiceOptions {
   expConfig?: ExpFormulaConfig;
   statGrowthConfig?: StatGrowthConfig;
+  statAllocationConfig?: StatAllocationConfig;
 }
 
 /**
  * Player progression service.
- * Handles awarding character combat EXP, calculating level-ups, and updating stats.
+ * Handles awarding character combat EXP, calculating level-ups, updating stats, and awarding stat points.
  */
 export class ProgressionService {
   private expConfig: ExpFormulaConfig;
   private statGrowthConfig: StatGrowthConfig;
+  private statAllocationConfig: StatAllocationConfig;
   private levelUpListeners: LevelUpListener[] = [];
 
   constructor(options: ProgressionServiceOptions = {}) {
     this.expConfig = options.expConfig ?? DEFAULT_EXP_CONFIG;
     this.statGrowthConfig = options.statGrowthConfig ?? DEFAULT_STAT_GROWTH_CONFIG;
+    this.statAllocationConfig = options.statAllocationConfig ?? DEFAULT_STAT_ALLOCATION_CONFIG;
   }
 
   /**
@@ -113,14 +121,17 @@ export class ProgressionService {
         const oldLevel = player.level;
         player.level += 1;
 
-        // Apply level-based stat growth
-        applyLevelStatsToPlayer(player, this.statGrowthConfig);
+        // Apply level-based stat growth and award stat points
+        const pointsAwarded = this.statAllocationConfig.pointsPerLevel;
+        player.unallocatedStatPoints = (player.unallocatedStatPoints ?? 0) + pointsAwarded;
+        applyLevelStatsToPlayer(player, this.statGrowthConfig, this.statAllocationConfig);
 
         const event: LevelUpEvent = {
           playerId: player.id,
           previousLevel: oldLevel,
           newLevel: player.level,
           levelsGained: 1,
+          statPointsAwarded: pointsAwarded,
           player,
         };
 

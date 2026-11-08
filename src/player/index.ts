@@ -1,7 +1,9 @@
 export {
   createPlayerData,
   DEFAULT_INITIAL_PLAYER_DATA,
+  DEFAULT_ALLOCATED_STATS,
   type PlayerData,
+  type AllocatedStats,
 } from './PlayerData';
 
 export {

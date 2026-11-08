@@ -189,12 +189,15 @@ describe('Phase 23.3 — Active Skills and Combat Integration', () => {
       session.activateSkill('math-prime-strike');
       session.beginTurn();
 
-      const turn = session.processAnswer({
-        outcome: AnswerOutcome.Correct,
-        isCorrect: true,
-        correctAnswerText: '4',
-        submittedAnswer: 'c2',
-      });
+      const turn = session.processAnswer(
+        {
+          outcome: AnswerOutcome.Correct,
+          isCorrect: true,
+          correctAnswerText: '4',
+          submittedAnswer: 'c2',
+        },
+        false, // Explicit forceCrit=false so test doesn't roll random crit
+      );
 
       expect(turn.outcome).toBe(AnswerOutcome.Correct);
       expect(turn.damageToMonster).toBe(19);

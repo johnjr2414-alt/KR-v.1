@@ -12,6 +12,8 @@ import { createInitialMasteryMap } from '../mastery/MasteryData';
 import { audioManager } from '../audio';
 import { SkillManager, skillManager } from '../skills';
 import { BankService, bankService } from '../economy/BankService';
+import { migratePlayerToStatAllocation, allocateStatPoints, type AllocationResult } from '../core/progression/StatAllocationService';
+import type { AllocatableStat } from '../config/statAllocationConfig';
 
 export interface PlayerSessionConfig {
   storage?: StorageService;
@@ -134,8 +136,8 @@ export class PlayerSessionManager {
       }
 
       if (loadedSave) {
-        // Restore player
-        this.player = { ...loadedSave.player };
+        // Restore player and ensure stat allocation fields are present
+        this.player = migratePlayerToStatAllocation({ ...loadedSave.player });
 
         // Restore settings
         this.settings = { ...loadedSave.settings };
@@ -201,7 +203,10 @@ export class PlayerSessionManager {
     return {
       version: SAVE_DATA_SCHEMA_VERSION,
       updatedAt: Date.now(),
-      player: { ...this.player },
+      player: {
+        ...this.player,
+        allocatedStats: { ...this.player.allocatedStats },
+      },
       mastery: this.mastery.getAllMastery(),
       inventory: this.inventory.getState(),
       quests: this.quests.getAllQuests(),
@@ -212,6 +217,18 @@ export class PlayerSessionManager {
       },
       settings: { ...this.settings },
     };
+  }
+
+  /**
+   * Allocates stat points to a specified attribute and auto-saves the session.
+   */
+  allocateStats(stat: AllocatableStat, points: number): AllocationResult {
+    const player = this.getPlayer();
+    const result = allocateStatPoints(player, stat, points);
+    if (result.success) {
+      void this.saveSession();
+    }
+    return result;
   }
 
   /**

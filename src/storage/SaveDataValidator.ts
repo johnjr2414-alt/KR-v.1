@@ -1,6 +1,8 @@
 import type { SaveData, GameSettings } from './StorageTypes';
 import { SAVE_DATA_SCHEMA_VERSION, DEFAULT_GAME_SETTINGS } from './StorageTypes';
-import { DEFAULT_INITIAL_PLAYER_DATA } from '../player/PlayerData';
+import { DEFAULT_INITIAL_PLAYER_DATA, DEFAULT_ALLOCATED_STATS, type AllocatedStats } from '../player/PlayerData';
+import { ALLOCATABLE_STATS } from '../config/statAllocationConfig';
+import { getTotalStatPointsForLevel, getTotalAllocatedPoints } from '../core/progression/StatAllocationService';
 import { SubjectId } from '../core/types/education';
 import { createInitialMasteryMap } from '../mastery/MasteryData';
 import { DEFAULT_INVENTORY_CAPACITY } from '../inventory/InventoryManager';
@@ -81,7 +83,31 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
     intelligence: typeof p.intelligence === 'number' && p.intelligence >= 0 ? p.intelligence : DEFAULT_INITIAL_PLAYER_DATA.intelligence,
     critRate: typeof p.critRate === 'number' && p.critRate >= 0 ? p.critRate : DEFAULT_INITIAL_PLAYER_DATA.critRate,
     movementSpeed: typeof p.movementSpeed === 'number' && p.movementSpeed > 0 ? p.movementSpeed : DEFAULT_INITIAL_PLAYER_DATA.movementSpeed,
+    unallocatedStatPoints: 0,
+    allocatedStats: { ...DEFAULT_ALLOCATED_STATS },
   };
+
+  // Validate or migrate stat allocation (Phase 24.1)
+  const validatedAllocatedStats: AllocatedStats = { ...DEFAULT_ALLOCATED_STATS };
+  if (p.allocatedStats && typeof p.allocatedStats === 'object') {
+    const rawAllocated = p.allocatedStats as Record<string, unknown>;
+    for (const stat of ALLOCATABLE_STATS) {
+      const val = rawAllocated[stat];
+      if (typeof val === 'number' && Number.isInteger(val) && val >= 0) {
+        validatedAllocatedStats[stat] = val;
+      }
+    }
+  }
+  sanitizedPlayer.allocatedStats = validatedAllocatedStats;
+
+  if (typeof p.unallocatedStatPoints === 'number' && Number.isInteger(p.unallocatedStatPoints) && p.unallocatedStatPoints >= 0) {
+    sanitizedPlayer.unallocatedStatPoints = p.unallocatedStatPoints;
+  } else {
+    // Migration: grant retroactive stat points for levels gained if missing
+    const earned = getTotalStatPointsForLevel(sanitizedPlayer.level);
+    const spent = getTotalAllocatedPoints(sanitizedPlayer.allocatedStats);
+    sanitizedPlayer.unallocatedStatPoints = Math.max(0, earned - spent);
+  }
 
   // Validate Mastery
   const defaultMastery = createInitialMasteryMap();

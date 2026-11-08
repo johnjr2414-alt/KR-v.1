@@ -40,7 +40,7 @@ export interface SaveData {
   settings: GameSettings;
 }
 
-export const SAVE_DATA_SCHEMA_VERSION = 2;
+export const SAVE_DATA_SCHEMA_VERSION = 3;
 
 /**
  * Storage Service contract for player game state and configuration.

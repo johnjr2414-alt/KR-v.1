@@ -847,6 +847,40 @@ This phase adds:
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 24.1 — Character Stats and Stat Allocation
+
+**Date**: 2026-11-08  
+**Phase**: 24.1 (Handbook Section: RPG Progression Depth)  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 24.1 implements player stat allocation. Characters receive 5 configurable stat points per level advancement, which can be allocated among 6 attributes (`hp`, `mp`, `attack`, `defense`, `intelligence`, `critRate`). Derived stats recalculate dynamically while maintaining strict separation between base growth, allocation bonuses, equipment, and passive skills. SaveData schema incremented to v3 with retroactive migration for existing save records.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/config/statAllocationConfig.ts`: Allocatable stats enum, per-point gains, configuration defaults.
+  - `src/core/progression/StatAllocationService.ts`: Pure and stateful calculation, allocation bounds validation, legacy migration.
+  - `tests/progression/phase24_1_stat_allocation.test.ts`: 15 automated test cases.
+  - `docs/PHASE_24_1_IMPLEMENTATION_REPORT.md`: Comprehensive phase report.
+- **Modified Files**:
+  - `src/player/PlayerData.ts`: Added `unallocatedStatPoints` and `allocatedStats` to `PlayerData`.
+  - `src/player/index.ts`: Barrel exports.
+  - `src/core/progression/StatGrowthService.ts`: Layered allocation bonuses into `applyLevelStatsToPlayer()`.
+  - `src/core/progression/ProgressionService.ts`: Integrated stat point rewards on level advancement and multi-level jumps.
+  - `src/core/progression/index.ts`: Barrel exports.
+  - `src/storage/StorageTypes.ts`: Incremented `SAVE_DATA_SCHEMA_VERSION` to 3.
+  - `src/storage/SaveDataValidator.ts`: Added sanitization and retroactive point migration.
+  - `src/player/PlayerSessionManager.ts`: Added `allocateStats()` with auto-save and migration on boot.
+  - `tests/combat/phase23_3_active_skills.test.ts`: Added deterministic non-crit parameter.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm test`)**: 52 test files passed (480 passed, 0 failures).
+- **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
+- **Production Build (`npm run build`)**: Succeeded cleanly.
+
+
 
 
 

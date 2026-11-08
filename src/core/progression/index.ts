@@ -12,3 +12,13 @@ export {
   applyLevelStatsToPlayer,
   type ComputedAttributes,
 } from './StatGrowthService';
+
+export {
+  allocateStatPoints,
+  recomputePlayerStats,
+  calculateAllocationBonuses,
+  getTotalAllocatedPoints,
+  getTotalStatPointsForLevel,
+  migratePlayerToStatAllocation,
+  type AllocationResult,
+} from './StatAllocationService';
