@@ -1,6 +1,7 @@
 import { EquipmentSlot, type ItemDefinition } from '../../inventory/ItemTypes';
 import { InventoryManager, inventoryManager } from '../../inventory/InventoryManager';
 import { getItemDefinition } from '../../inventory/ItemRegistry';
+import { compareEquipment } from '../../inventory/EquipmentComparison';
 
 export interface InventoryPanelOptions {
   manager?: InventoryManager;
@@ -214,12 +215,24 @@ export class InventoryPanel {
       const itemDef = slot ? getItemDefinition(slot.itemId) : undefined;
 
       if (itemDef) {
-        this.displayItemInfo(detailsEl, itemDef);
+        if (itemDef.equipmentSlot) {
+          const comparison = compareEquipment(slot!.itemId, state.equipped, this.playerLevel);
+          this.displayItemWithComparison(detailsEl, itemDef, comparison);
+        } else {
+          this.displayItemInfo(detailsEl, itemDef);
+        }
 
         if (itemDef.equipmentSlot) {
           const equipBtn = document.createElement('button');
           equipBtn.className = 'item-btn item-btn--equip';
           equipBtn.textContent = 'Equip';
+
+          // Disable button if level requirement is not met
+          if (itemDef.requiredLevel && this.playerLevel < itemDef.requiredLevel) {
+            equipBtn.disabled = true;
+            equipBtn.title = `Requires level ${itemDef.requiredLevel}`;
+          }
+
           equipBtn.addEventListener('click', () => {
             if (this.selectedSlotIndex !== null) {
               const res = this.manager.equipItem(this.selectedSlotIndex, this.playerLevel);
@@ -254,6 +267,53 @@ export class InventoryPanel {
       <div class="item-details__desc">${this.escape(itemDef.description)}</div>
       ${statsStr ? `<div class="item-details__stats">${statsStr}</div>` : ''}
       ${itemDef.requiredLevel ? `<div class="item-details__desc">Requires Level ${itemDef.requiredLevel}</div>` : ''}
+    `;
+  }
+
+  private displayItemWithComparison(
+    container: Element,
+    itemDef: ItemDefinition,
+    comparison: import('../../inventory/EquipmentComparison').EquipmentComparison | null,
+  ): void {
+    const statsStr = itemDef.statModifiers
+      ? Object.entries(itemDef.statModifiers)
+          .filter(([, val]) => val && val > 0)
+          .map(([k, v]) => `+${v} ${k.toUpperCase()}`)
+          .join(', ')
+      : '';
+
+    const levelClass =
+      itemDef.requiredLevel && this.playerLevel < itemDef.requiredLevel
+        ? 'style="color: #ef4444; font-weight: bold;"'
+        : 'style="color: #10b981;"';
+
+    let comparisonHtml = '';
+    if (comparison && comparison.statDiffs.length > 0) {
+      const diffRows = comparison.statDiffs
+        .map((d) => {
+          const deltaSign = d.delta > 0 ? `+${d.delta}` : `${d.delta}`;
+          const deltaColor = d.delta > 0 ? '#10b981' : d.delta < 0 ? '#ef4444' : '#9ca3af';
+          return `<div style="display:flex; justify-content:space-between; font-size:11px; margin:2px 0;">
+            <span>${d.stat.toUpperCase()}:</span>
+            <span>${d.currentValue} → <b>${d.candidateValue}</b> <span style="color:${deltaColor};">(${deltaSign})</span></span>
+          </div>`;
+        })
+        .join('');
+
+      comparisonHtml = `
+        <div style="margin-top:6px; padding:6px; background:rgba(0,0,0,0.3); border-radius:4px; border:1px solid #374151;">
+          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px; font-weight:bold;">vs Equipped (${comparison.currentEquippedDef ? this.escape(comparison.currentEquippedDef.name) : 'None'}):</div>
+          ${diffRows}
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="item-details__title rarity-${itemDef.rarity}">${this.escape(itemDef.name)} (${itemDef.rarity})</div>
+      <div class="item-details__desc">${this.escape(itemDef.description)}</div>
+      ${statsStr ? `<div class="item-details__stats">${statsStr}</div>` : ''}
+      ${itemDef.requiredLevel ? `<div class="item-details__desc" ${levelClass}>Requires Level ${itemDef.requiredLevel} (Your Level: ${this.playerLevel})</div>` : ''}
+      ${comparisonHtml}
     `;
   }
 
