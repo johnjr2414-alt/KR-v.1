@@ -30,10 +30,13 @@ export interface SaveData {
   mastery: Record<SubjectId, MasteryRecord>;
   inventory: InventoryState;
   quests: PlayerQuestRecord[];
+  currency?: {
+    gold: number;
+  };
   settings: GameSettings;
 }
 
-export const SAVE_DATA_SCHEMA_VERSION = 1;
+export const SAVE_DATA_SCHEMA_VERSION = 2;
 
 /**
  * Storage Service contract for player game state and configuration.

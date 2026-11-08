@@ -228,6 +228,19 @@ export class InventoryManager {
   }
 
   /**
+   * Checks whether the inventory contains at least `quantity` of `itemId`.
+   */
+  hasItem(itemId: string, quantity = 1): boolean {
+    let count = 0;
+    for (const slot of this.state.slots) {
+      if (slot && slot.itemId === itemId) {
+        count += slot.quantity;
+      }
+    }
+    return count >= quantity;
+  }
+
+  /**
    * Returns item definition of currently equipped gear in a slot.
    */
   getEquippedItem(slot: EquipmentSlot): ItemDefinition | undefined {

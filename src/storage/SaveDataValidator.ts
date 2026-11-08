@@ -125,6 +125,15 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
   // Validate Quests
   const sanitizedQuests = Array.isArray(candidate.quests) ? [...candidate.quests] : [];
 
+  // Validate Currency (Phase 21.2: Gold persistence & backward compatibility)
+  let sanitizedGold = 0;
+  if (candidate.currency && typeof candidate.currency === 'object') {
+    const rawGold = candidate.currency.gold;
+    if (typeof rawGold === 'number' && Number.isFinite(rawGold) && rawGold >= 0) {
+      sanitizedGold = Math.floor(rawGold);
+    }
+  }
+
   // Validate Settings
   const sanitizedSettings = validateGameSettings(candidate.settings);
 
@@ -138,6 +147,9 @@ export function validateSaveData(raw: unknown): ValidationResult<SaveData> {
       mastery: sanitizedMastery,
       inventory: sanitizedInventory,
       quests: sanitizedQuests,
+      currency: {
+        gold: sanitizedGold,
+      },
       settings: sanitizedSettings,
     },
   };

@@ -7,6 +7,7 @@ import { InventoryManager, inventoryManager } from '../inventory/InventoryManage
 import { MasteryManager, masteryManager } from '../mastery/MasteryManager';
 import { QuestManager, questManager } from '../quests/QuestManager';
 import { CurrencyService, currencyService } from '../economy/CurrencyService';
+import { ProgressionService, progressionService } from '../core/progression/ProgressionService';
 import { createInitialMasteryMap } from '../mastery/MasteryData';
 
 export interface PlayerSessionConfig {
@@ -15,6 +16,7 @@ export interface PlayerSessionConfig {
   mastery?: MasteryManager;
   quests?: QuestManager;
   currency?: CurrencyService;
+  progression?: ProgressionService;
 }
 
 /**
@@ -43,6 +45,7 @@ export class PlayerSessionManager {
   readonly mastery: MasteryManager;
   readonly quests: QuestManager;
   readonly currency: CurrencyService;
+  readonly progression: ProgressionService;
 
   constructor(config: PlayerSessionConfig = {}) {
     this.storage = config.storage || storageService;
@@ -50,6 +53,7 @@ export class PlayerSessionManager {
     this.mastery = config.mastery || masteryManager;
     this.quests = config.quests || questManager;
     this.currency = config.currency || currencyService;
+    this.progression = config.progression || progressionService;
   }
 
   /**
@@ -136,12 +140,21 @@ export class PlayerSessionManager {
         if (loadedSave.quests) {
           this.quests.loadQuests(loadedSave.quests);
         }
+        if (loadedSave.currency) {
+          this.currency.setGold(loadedSave.currency.gold);
+        } else {
+          // Backward compatibility default for legacy saves without currency field
+          this.currency.setGold(0);
+        }
       } else {
         // Create new player character
         this.player = createPlayerData('player-1', defaultName);
 
         // Populate initial mastery map
         this.mastery.loadRecords(createInitialMasteryMap());
+
+        // Baseline starter gold for fresh player (matches currencyService initial default of 100)
+        this.currency.setGold(100);
 
         this.initialized = true;
 
@@ -175,6 +188,9 @@ export class PlayerSessionManager {
       mastery: this.mastery.getAllMastery(),
       inventory: this.inventory.getState(),
       quests: this.quests.getAllQuests(),
+      currency: {
+        gold: this.currency.getGold(),
+      },
       settings: { ...this.settings },
     };
   }

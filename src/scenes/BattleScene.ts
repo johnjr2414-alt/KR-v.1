@@ -36,12 +36,14 @@ export class BattleScene extends Phaser.Scene {
 
   private playerVisual!: Phaser.GameObjects.Graphics;
   private monsterVisual!: Phaser.GameObjects.Graphics;
+  private rewardsProcessed = false;
 
   constructor() {
     super({ key: BattleScene.KEY });
   }
 
   init(data: BattleSceneInitData): void {
+    this.rewardsProcessed = false;
     this.monster = data.monster;
     if (playerSessionManager.isInitialized()) {
       this.player = playerSessionManager.getPlayer();
@@ -218,18 +220,42 @@ export class BattleScene extends Phaser.Scene {
   private finishBattle(): void {
     const summary = this.session.getEndSummary();
 
-    // Sync remaining HP to active player
-    this.player.currentHp = summary.remainingPlayerHp;
+    // Idempotent reward processing guard: process exactly once
+    if (!this.rewardsProcessed) {
+      this.rewardsProcessed = true;
 
-    // Automatically deposit victory drops into active inventory
-    if (summary.droppedItems && summary.droppedItems.length > 0) {
-      for (const drop of summary.droppedItems) {
-        playerSessionManager.inventory.addItem(drop.itemId, drop.quantity);
+      // Sync remaining HP to active player
+      this.player.currentHp = summary.remainingPlayerHp;
+
+      if (summary.monsterDefeated) {
+        // 1. Award combat EXP via ProgressionService
+        if (summary.expEarned > 0) {
+          playerSessionManager.progression.awardExp(this.player, summary.expEarned);
+        }
+
+        // 2. Award Gold via CurrencyService
+        if (summary.goldEarned > 0) {
+          playerSessionManager.currency.addGold(summary.goldEarned);
+        }
+
+        // 3. Deposit victory item drops into active inventory
+        if (summary.droppedItems && summary.droppedItems.length > 0) {
+          for (const drop of summary.droppedItems) {
+            playerSessionManager.inventory.addItem(drop.itemId, drop.quantity);
+          }
+        }
+      } else if (summary.playerDefeated) {
+        // Player defeated: Defeat handling & respawn preparation
+        // Fully restore player HP on defeat/respawn (configured default respawn rule)
+        this.player.currentHp = this.player.maxHp;
+        // Point return scene to Beginners Village plaza
+        this.returnSceneKey = 'VillageScene';
+        this.returnPosition = { x: 600, y: 550 };
       }
-    }
 
-    // Auto-save session upon battle resolution
-    void playerSessionManager.saveSession();
+      // Auto-save session upon battle resolution
+      void playerSessionManager.saveSession();
+    }
 
     this.overlay.showEndSummary(summary);
   }
