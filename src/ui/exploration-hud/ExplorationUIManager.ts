@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ExplorationHUD } from './ExplorationHUD';
 import { InventoryPanel } from '../inventory-panel';
 import { MasteryPanel } from '../mastery-panel';
+import { PauseModal } from '../pause-modal';
 import { playerSessionManager } from '../../player';
 import { PhaserInputAdapter } from '../../player/movement/PhaserInputAdapter';
 
@@ -9,6 +10,7 @@ export interface ExplorationUIManagerOptions {
   scene: Phaser.Scene;
   inputAdapter: PhaserInputAdapter;
   playerSprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+  onQuitToMenu?: () => void;
 }
 
 /**
@@ -23,14 +25,18 @@ export class ExplorationUIManager {
   private hud: ExplorationHUD | null = null;
   private activeInventoryPanel: InventoryPanel | null = null;
   private activeMasteryPanel: MasteryPanel | null = null;
+  private activePauseModal: PauseModal | null = null;
+  private readonly onQuitToMenu?: () => void;
 
   private keyI!: Phaser.Input.Keyboard.Key;
   private keyM!: Phaser.Input.Keyboard.Key;
+  private keyEsc!: Phaser.Input.Keyboard.Key;
 
   constructor(options: ExplorationUIManagerOptions) {
     this.scene = options.scene;
     this.inputAdapter = options.inputAdapter;
     this.playerSprite = options.playerSprite;
+    this.onQuitToMenu = options.onQuitToMenu;
 
     this.initHUD();
     this.initKeyboardShortcuts();
@@ -49,6 +55,7 @@ export class ExplorationUIManager {
 
     this.keyI = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
     this.keyM = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this.keyEsc = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     this.keyI.on('down', () => {
       if (this.isTypingInInput()) return;
@@ -59,10 +66,65 @@ export class ExplorationUIManager {
       if (this.isTypingInInput()) return;
       this.toggleMastery();
     });
+
+    this.keyEsc.on('down', () => {
+      if (this.isTypingInInput()) return;
+      this.handleEscape();
+    });
   }
 
   isPanelOpen(): boolean {
-    return this.activeInventoryPanel !== null || this.activeMasteryPanel !== null;
+    return (
+      this.activeInventoryPanel !== null ||
+      this.activeMasteryPanel !== null ||
+      this.activePauseModal !== null
+    );
+  }
+
+  private handleEscape(): void {
+    // If an inventory or mastery panel is open, close it first
+    if (this.activeInventoryPanel) {
+      this.closeInventory();
+      return;
+    }
+    if (this.activeMasteryPanel) {
+      this.closeMastery();
+      return;
+    }
+    // Otherwise toggle pause menu
+    this.togglePause();
+  }
+
+  togglePause(): void {
+    if (this.activePauseModal) {
+      this.closePause();
+    } else {
+      this.openPause();
+    }
+  }
+
+  openPause(): void {
+    this.freezePlayerMovement();
+
+    this.activePauseModal = new PauseModal({
+      onResume: () => {
+        this.closePause();
+      },
+      onQuitToMenu: () => {
+        this.closePause();
+        this.onQuitToMenu?.();
+      },
+    });
+
+    this.activePauseModal.show();
+  }
+
+  closePause(): void {
+    if (this.activePauseModal) {
+      this.activePauseModal.destroy();
+      this.activePauseModal = null;
+    }
+    this.unfreezePlayerMovement();
   }
 
   private isTypingInInput(): boolean {
@@ -167,6 +229,9 @@ export class ExplorationUIManager {
     if (this.keyM) {
       this.keyM.removeAllListeners();
     }
+    if (this.keyEsc) {
+      this.keyEsc.removeAllListeners();
+    }
 
     this.hud?.destroy();
     this.hud = null;
@@ -176,6 +241,9 @@ export class ExplorationUIManager {
 
     this.activeMasteryPanel?.destroy();
     this.activeMasteryPanel = null;
+
+    this.activePauseModal?.destroy();
+    this.activePauseModal = null;
 
     this.inputAdapter.setInputEnabled(true);
   }

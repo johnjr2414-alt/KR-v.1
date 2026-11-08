@@ -8,3 +8,4 @@ export { InventoryPanel, type InventoryPanelOptions } from './inventory-panel';
 export { NPCDialogueModal, type NPCDialogueModalOptions } from './npc-dialogue';
 export { ExplorationHUD, type ExplorationHUDOptions, ExplorationUIManager, type ExplorationUIManagerOptions } from './exploration-hud';
 export { ShopModal, type ShopModalOptions } from './shop-modal';
+export { PauseModal, type PauseModalOptions } from './pause-modal';

@@ -260,4 +260,72 @@ A dedicated merchant NPC (`Merchant Barnaby`) was registered in Beginners Villag
 - [ ] **Persistence**:
   1. Refresh browser (`F5`), load User session, and verify post-trade Gold and inventory remain intact.
 
+---
+
+# Phase 21.6 — Pause Menu and Settings
+
+**Date**: 2026-11-08  
+**Phase**: 21.6  
+**Status**: Implemented — manual verification pending  
+
+### 1. Executive Summary
+Phase 21.6 introduces a full-featured pause overlay and persistent settings configuration for exploration scenes (`VillageScene` and `HuntingScene`).
+
+Pressing `ESC` toggles the `PauseModal` overlay, freezing player movement. If an inventory or mastery panel is open when `ESC` is pressed, it safely dismisses the open panel first. The pause menu offers:
+1. **Resume Game**: Seamlessly unfreezes player controls and dismisses the overlay.
+2. **Settings**: Real-time slider controls for Master Volume, SFX Volume, and Music Volume, plus a toggle for showing damage numbers in combat. Adjustments immediately update and auto-persist to storage.
+3. **Controls Guide**: Detailed reference for keyboard shortcuts (`WASD`/Arrows, `SPACE`/`ENTER`, `I`, `M`, `Q`, `ESC`).
+4. **Return to Start Menu**: Safe exit workflow with a confirmation prompt and guaranteed pre-exit player state auto-save.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/ui/pause-modal/PauseModal.ts`: DOM-layered pause menu supporting multi-view navigation (`menu`, `settings`, `controls`, `confirmQuit`), interactive settings sliders, and pre-exit auto-saving.
+  - `src/ui/pause-modal/pause-modal.css`: Dark fantasy backdrop blur and card styling.
+  - `src/ui/pause-modal/index.ts`: Public export for `PauseModal`.
+  - `tests/ui/phase21_6_pause.test.ts`: Automated tests covering settings validation & clamping, live settings persistence in `PlayerSessionManager`, and pre-exit state saving.
+- **Modified Files**:
+  - `src/ui/exploration-hud/ExplorationUIManager.ts`: Registered `ESC` key listener, implemented hierarchical close order (open panels closed before toggling pause), suppressed `ESC` while typing in form inputs, and exposed `onQuitToMenu` callback.
+  - `src/ui/index.ts`: Exported `PauseModal`.
+  - `src/scenes/VillageScene.ts`: Passed `onQuitToMenu` callback to transition cleanly to `BootScene`.
+  - `src/scenes/HuntingScene.ts`: Passed `onQuitToMenu` callback to transition cleanly to `BootScene`.
+
+### 3. Key Design Decisions & Battle Isolation
+- **Escape Key Hierarchy**:
+  - If an `InventoryPanel` or `MasteryPanel` is open, pressing `ESC` closes that panel rather than layering a pause menu over it. Pressing `ESC` again when no panels are open activates the pause menu.
+- **BattleScene Rule**:
+  - As mandated by the handbook, pause is **unavailable during timed combat encounters** in `BattleScene`. Timers and combat answer submissions remain strictly synchronized to prevent out-of-order combat turns or invisible timer expiration.
+- **Audio Settings Handling**:
+  - Since raw audio assets and the presentation audio engine are planned for Phase 22.4, settings sliders currently persist to `GameSettings` in `storageService` without fabricating dummy web audio nodes.
+- **Exit State Preservation**:
+  - Clicking "Yes, Save & Exit" synchronously awaits `playerSessionManager.saveSession()` before invoking the scene fade transition back to `BootScene`.
+
+### 4. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **37 test files passed** (383 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors.
+
+### 5. Manual Verification Checklist (For Browser Testing)
+- [ ] **Pause & Resume**:
+  1. Boot game as "User" and spawn in Beginners Village.
+  2. Press `ESC`. Confirm pause menu appears and character movement is stopped.
+  3. Click "▶️ Resume Game" or press `ESC` again. Confirm movement resumes.
+- [ ] **Escape Closes Panels First**:
+  1. Press `I` to open Bag.
+  2. Press `ESC`. Confirm Bag closes and pause menu is NOT opened.
+  3. Press `ESC` again. Confirm pause menu opens.
+- [ ] **Settings Adjustments**:
+  1. Open pause menu, select "⚙️ Settings".
+  2. Adjust Master Volume to 50% and toggle "Show Damage Numbers".
+  3. Click "← Back", resume game, and refresh browser (`F5`).
+  4. Press `ESC` -> Settings; verify settings retained the modified values.
+- [ ] **Safe Return to Start Menu**:
+  1. Open pause menu, select "🚪 Return to Start Menu".
+  2. Verify confirmation prompt appears.
+  3. Click "Yes, Save & Exit". Verify clean fade transition back to Start Menu.
+  4. Click "Play as User" and verify player character resumes with all progress intact.
+
+
 

@@ -129,6 +129,13 @@ export class VillageScene extends Phaser.Scene {
       scene: this,
       inputAdapter: this.inputAdapter,
       playerSprite: this.player,
+      onQuitToMenu: () => {
+        this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+          if (progress === 1) {
+            this.scene.start('BootScene');
+          }
+        });
+      },
     });
 
     // ── Zone title label ─────────────────────────────────────────

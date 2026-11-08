@@ -1,0 +1,188 @@
+/* Pause and Settings Modal Overlay Styling */
+.pause-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  user-select: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.pause-card {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  width: 420px;
+  max-width: 92vw;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+  color: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pause-card__header {
+  padding: 16px 20px;
+  background: #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pause-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fcd34d;
+}
+
+.pause-card__content {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pause-card__menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pause-menu-btn {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pause-menu-btn:hover {
+  background: #334155;
+  border-color: #60a5fa;
+  color: #ffffff;
+}
+
+.pause-menu-btn--danger {
+  background: rgba(185, 28, 28, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.pause-menu-btn--danger:hover {
+  background: rgba(185, 28, 28, 0.4);
+  border-color: #ef4444;
+  color: #fee2e2;
+}
+
+.pause-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pause-setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pause-setting-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.pause-setting-val {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.pause-setting-slider {
+  width: 100%;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.pause-setting-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.pause-setting-checkbox input {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.pause-controls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pause-controls-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pause-controls-row kbd {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.pause-confirm-box {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 14px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #fecaca;
+}
+
+.pause-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.pause-card__footer {
+  padding: 12px 20px;
+  background: #1e293b;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
