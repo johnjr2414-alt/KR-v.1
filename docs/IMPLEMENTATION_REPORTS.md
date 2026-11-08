@@ -934,6 +934,32 @@ Phase 24.3 implements a deterministic, non-exploitative equipment enhancement sy
 - **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
 - **Production Build (`npm run build`)**: Succeeded cleanly.
 
+---
+
+# Phase 24.4 — Elites, Bosses, and Encounter Progression
+
+**Date**: 2026-11-08  
+**Phase**: 24.4 (Handbook Section: RPG Progression Depth)  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 24.4 implements data-driven elite and world boss encounters (`prime-gargoyle`, `overclocked-golem`, `archivist-malakor`), multi-phase combat enrage mechanics via `BossEncounterController`, idempotent first-clear reward protection, and category-aware question count constraints (5-8 for Elites, 6-10 for Bosses).
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/monsters/EliteBossRegistry.ts`: Data catalog of elite/boss encounters and drop configurations.
+  - `src/monsters/BossEncounterController.ts`: Headless state coordinator for phase transitions and reward claims.
+  - `tests/monsters/phase24_4_elites_bosses.test.ts`: 8 automated unit tests.
+  - `docs/PHASE_24_4_IMPLEMENTATION_REPORT.md`: Comprehensive phase report.
+- **Modified Files**:
+  - `src/monsters/index.ts`: Barrel exports.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm test`)**: 55 test files passed (513 passed, 0 failures).
+- **TypeScript Check (`npx tsc --noEmit`)**: 0 errors.
+- **Production Build (`npm run build`)**: Succeeded cleanly.
+
+
 
 
 
