@@ -4,6 +4,7 @@ import { InventoryPanel } from '../inventory-panel';
 import { MasteryPanel } from '../mastery-panel';
 import { PauseModal } from '../pause-modal';
 import { QuestJournal } from '../quest-journal';
+import { SkillModal } from '../skill-modal';
 import { playerSessionManager } from '../../player';
 import { PhaserInputAdapter } from '../../player/movement/PhaserInputAdapter';
 
@@ -27,12 +28,14 @@ export class ExplorationUIManager {
   private activeInventoryPanel: InventoryPanel | null = null;
   private activeMasteryPanel: MasteryPanel | null = null;
   private activeQuestJournal: QuestJournal | null = null;
+  private activeSkillModal: SkillModal | null = null;
   private activePauseModal: PauseModal | null = null;
   private readonly onQuitToMenu?: () => void;
 
   private keyI!: Phaser.Input.Keyboard.Key;
   private keyM!: Phaser.Input.Keyboard.Key;
   private keyQ!: Phaser.Input.Keyboard.Key;
+  private keyK!: Phaser.Input.Keyboard.Key;
   private keyEsc!: Phaser.Input.Keyboard.Key;
 
   constructor(options: ExplorationUIManagerOptions) {
@@ -48,6 +51,7 @@ export class ExplorationUIManager {
   private initHUD(): void {
     this.hud = new ExplorationHUD({
       onOpenInventory: () => this.toggleInventory(),
+      onOpenSkills: () => this.toggleSkills(),
       onOpenMastery: () => this.toggleMastery(),
       onOpenQuests: () => this.toggleQuests(),
     });
@@ -60,6 +64,7 @@ export class ExplorationUIManager {
     this.keyI = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
     this.keyM = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
     this.keyQ = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.keyK = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K);
     this.keyEsc = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     this.keyI.on('down', () => {
@@ -77,6 +82,11 @@ export class ExplorationUIManager {
       this.toggleQuests();
     });
 
+    this.keyK.on('down', () => {
+      if (this.isTypingInInput()) return;
+      this.toggleSkills();
+    });
+
     this.keyEsc.on('down', () => {
       if (this.isTypingInInput()) return;
       this.handleEscape();
@@ -88,14 +98,19 @@ export class ExplorationUIManager {
       this.activeInventoryPanel !== null ||
       this.activeMasteryPanel !== null ||
       this.activeQuestJournal !== null ||
+      this.activeSkillModal !== null ||
       this.activePauseModal !== null
     );
   }
 
   private handleEscape(): void {
-    // If an inventory, mastery, or quest panel is open, close it first
+    // If an inventory, mastery, quest, or skill panel is open, close it first
     if (this.activeInventoryPanel) {
       this.closeInventory();
+      return;
+    }
+    if (this.activeSkillModal) {
+      this.closeSkills();
       return;
     }
     if (this.activeMasteryPanel) {
@@ -196,8 +211,42 @@ export class ExplorationUIManager {
     this.unfreezePlayerMovement();
   }
 
+  toggleSkills(): void {
+    if (this.activeSkillModal) {
+      this.closeSkills();
+    } else {
+      this.closeAllModals();
+      this.openSkills();
+    }
+  }
+
+  openSkills(): void {
+    this.freezePlayerMovement();
+
+    this.activeSkillModal = new SkillModal({
+      skillManager: playerSessionManager.skills,
+      onClose: () => {
+        this.closeSkills();
+      },
+      onStateChange: () => {
+        this.hud?.refresh();
+      },
+    });
+
+    this.activeSkillModal.show();
+  }
+
+  closeSkills(): void {
+    if (this.activeSkillModal) {
+      this.activeSkillModal.destroy();
+      this.activeSkillModal = null;
+    }
+    this.unfreezePlayerMovement();
+  }
+
   private closeAllModals(): void {
     if (this.activeInventoryPanel) this.closeInventory();
+    if (this.activeSkillModal) this.closeSkills();
     if (this.activeMasteryPanel) this.closeMastery();
     if (this.activeQuestJournal) this.closeQuests();
     if (this.activePauseModal) this.closePause();
@@ -277,6 +326,9 @@ export class ExplorationUIManager {
     if (this.keyQ) {
       this.keyQ.removeAllListeners();
     }
+    if (this.keyK) {
+      this.keyK.removeAllListeners();
+    }
     if (this.keyEsc) {
       this.keyEsc.removeAllListeners();
     }
@@ -286,6 +338,9 @@ export class ExplorationUIManager {
 
     this.activeInventoryPanel?.destroy();
     this.activeInventoryPanel = null;
+
+    this.activeSkillModal?.destroy();
+    this.activeSkillModal = null;
 
     this.activeMasteryPanel?.destroy();
     this.activeMasteryPanel = null;

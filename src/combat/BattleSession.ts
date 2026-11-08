@@ -98,7 +98,7 @@ export class BattleSession {
       player: {
         ...options.player,
         defense: options.player.defense + this.passiveBonuses.flatDefense,
-        critRate: options.player.critRate + (this.passiveBonuses.critRatePercent / 100),
+        critRate: options.player.critRate + this.passiveBonuses.critRatePercent / 100,
       },
       monster: { ...options.monster },
       playerCurrentHp: options.player.currentHp,

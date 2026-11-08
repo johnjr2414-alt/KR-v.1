@@ -6,6 +6,7 @@ export interface ExplorationHUDOptions {
   onOpenInventory?: () => void;
   onOpenMastery?: () => void;
   onOpenQuests?: () => void;
+  onOpenSkills?: () => void;
 }
 
 /**
@@ -18,12 +19,14 @@ export class ExplorationHUD {
   private readonly onOpenInventory?: () => void;
   private readonly onOpenMastery?: () => void;
   private readonly onOpenQuests?: () => void;
+  private readonly onOpenSkills?: () => void;
   private unsubscribeGoldListener: (() => void) | null = null;
 
   constructor(options: ExplorationHUDOptions = {}) {
     this.onOpenInventory = options.onOpenInventory;
     this.onOpenMastery = options.onOpenMastery;
     this.onOpenQuests = options.onOpenQuests;
+    this.onOpenSkills = options.onOpenSkills;
   }
 
   show(): void {
@@ -106,6 +109,9 @@ export class ExplorationHUD {
             <button class="exploration-hud__btn" id="hud-inv-btn" type="button">
               🎒 Bag <span class="exploration-hud__btn-key">I</span>
             </button>
+            <button class="exploration-hud__btn" id="hud-skills-btn" type="button">
+              ⚡ Skills <span class="exploration-hud__btn-key">K</span>
+            </button>
             <button class="exploration-hud__btn" id="hud-mastery-btn" type="button">
               📖 Mastery <span class="exploration-hud__btn-key">M</span>
             </button>
@@ -121,6 +127,11 @@ export class ExplorationHUD {
     this.container.querySelector('#hud-inv-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.onOpenInventory?.();
+    });
+
+    this.container.querySelector('#hud-skills-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.onOpenSkills?.();
     });
 
     this.container.querySelector('#hud-mastery-btn')?.addEventListener('click', (e) => {

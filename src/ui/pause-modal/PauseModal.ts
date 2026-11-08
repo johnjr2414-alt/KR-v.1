@@ -117,6 +117,10 @@ export class PauseModal {
             <span><kbd>I</kbd></span>
           </div>
           <div class="pause-controls-row">
+            <span>Skill Trees & Hotbar:</span>
+            <span><kbd>K</kbd> (Phase 23.5)</span>
+          </div>
+          <div class="pause-controls-row">
             <span>Subject Mastery:</span>
             <span><kbd>M</kbd></span>
           </div>
