@@ -4,7 +4,7 @@ export const SHOP_REGISTRY: Record<string, ShopDefinition> = {
   'village-general-store': {
     id: 'village-general-store',
     name: "Beginner's General Store",
-    merchantNpcId: 'elder-aldous',
+    merchantNpcId: 'merchant-barnaby',
     sellPriceMultiplier: 0.5,
     catalog: [
       { itemId: 'wooden-sword', buyPrice: 20 },
@@ -30,4 +30,8 @@ export const SHOP_REGISTRY: Record<string, ShopDefinition> = {
 
 export function getShopDefinition(id: string): ShopDefinition | undefined {
   return SHOP_REGISTRY[id];
+}
+
+export function getShopForMerchant(merchantNpcId: string): ShopDefinition | undefined {
+  return Object.values(SHOP_REGISTRY).find((shop) => shop.merchantNpcId === merchantNpcId);
 }

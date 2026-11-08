@@ -53,6 +53,21 @@ export const NPC_REGISTRY: Record<string, NPCDefinition> = {
     },
     offeredQuestIds: ['quest-slime-sample'],
   },
+  'merchant-barnaby': {
+    id: 'merchant-barnaby',
+    name: 'Merchant Barnaby',
+    title: 'Village Provisioner',
+    type: NPCType.Merchant,
+    mapId: 'beginners-village',
+    position: { x: 750, y: 520 },
+    spriteColor: 0xf59e0b,
+    dialogue: {
+      default: [
+        'Welcome, adventurer! Browse my wares or sell your monster spoils.',
+        'Potions, weapons, and scholar armor—fair prices guaranteed!',
+      ],
+    },
+  },
 };
 
 export function getNPCDefinition(id: string): NPCDefinition | undefined {

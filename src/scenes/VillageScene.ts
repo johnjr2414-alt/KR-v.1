@@ -8,6 +8,9 @@ import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import { ZoneWarningModal } from '../ui/zone-warning';
 import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
 import { ExplorationUIManager } from '../ui/exploration-hud';
+import { ShopModal } from '../ui/shop-modal';
+import type { ShopDefinition } from '../economy/ShopTypes';
+import { getShopForMerchant } from '../economy/ShopRegistry';
 import { getNPCsForMap } from '../quests/NPCRegistry';
 import type { NPCDefinition } from '../quests/NPCTypes';
 import '../ui/zone-warning/zone-warning.css';
@@ -52,6 +55,7 @@ export class VillageScene extends Phaser.Scene {
   private nearbyBuilding: BuildingDefinition | null = null;
   private nearbyNPC: NPCDefinition | null = null;
   private activeDialogueModal: NPCDialogueModal | null = null;
+  private activeShopModal: ShopModal | null = null;
   private npcs: NPCDefinition[] = [];
   private explorationUI: ExplorationUIManager | null = null;
 
@@ -141,7 +145,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.explorationUI?.isPanelOpen()) return;
+    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) return;
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
@@ -203,11 +207,19 @@ export class VillageScene extends Phaser.Scene {
     this.nearbyNPC = nearest;
 
     if (nearest && !this.nearbyBuilding) {
-      const questStatus = playerSessionManager.quests.getNpcQuestStatus(nearest.id, playerLevel);
-      const promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
+      const shopDef = getShopForMerchant(nearest.id);
+      let promptTitle = 'Talk';
 
+      if (shopDef) {
+        promptTitle = 'Trade / Shop';
+      } else {
+        const questStatus = playerSessionManager.quests.getNpcQuestStatus(nearest.id, playerLevel);
+        promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
+      }
+
+      const icon = shopDef ? '🏪' : '💬';
       this.interactPrompt
-        .setText(`💬 ${nearest.name}\n[SPACE / ENTER] ${promptTitle}`)
+        .setText(`${icon} ${nearest.name}\n[SPACE / ENTER] ${promptTitle}`)
         .setPosition(this.player.x - 60, this.player.y - 80)
         .setVisible(true);
     } else if (!nearest && !this.nearbyBuilding) {
@@ -339,11 +351,16 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) return;
 
     // Prioritize NPC interaction if close to an NPC
     if (this.nearbyNPC) {
-      this.openNPCDialogue(this.nearbyNPC);
+      const shop = getShopForMerchant(this.nearbyNPC.id);
+      if (shop) {
+        this.openShopModal(shop);
+      } else {
+        this.openNPCDialogue(this.nearbyNPC);
+      }
       return;
     }
 
@@ -360,7 +377,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openNPCDialogue(npc: NPCDefinition): void {
-    if (this.activeDialogueModal) return;
+    if (this.activeDialogueModal || this.activeShopModal) return;
 
     this.player.setVelocity(0, 0);
     const player = playerSessionManager.getPlayer();
@@ -380,6 +397,25 @@ export class VillageScene extends Phaser.Scene {
     });
 
     this.activeDialogueModal.show();
+  }
+
+  private openShopModal(shop: ShopDefinition): void {
+    if (this.activeShopModal || this.activeDialogueModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeShopModal = new ShopModal({
+      shop,
+      onClose: () => {
+        this.activeShopModal = null;
+        void playerSessionManager.saveSession();
+      },
+      onTransactionComplete: () => {
+        this.explorationUI?.refreshHUD();
+      },
+    });
+
+    this.activeShopModal.show();
   }
 
   // ── Zone entry with optional risk warning ─────────────────────
@@ -442,5 +478,7 @@ export class VillageScene extends Phaser.Scene {
     this.zoneWarningModal.destroy();
     this.activeDialogueModal?.destroy();
     this.activeDialogueModal = null;
+    this.activeShopModal?.destroy();
+    this.activeShopModal = null;
   }
 }

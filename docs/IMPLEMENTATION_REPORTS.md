@@ -196,3 +196,68 @@ Player movement is cleanly frozen while any overlay is active, keyboard shortcut
   2. Confirm equipment slot reflects the sword and player stats update.
   3. Close inventory and refresh page; confirm equipped state persists.
 
+---
+
+# Phase 21.5 — Village Merchant and Shop Interface
+
+**Date**: 2026-11-08  
+**Phase**: 21.5  
+**Status**: Implemented — manual verification pending  
+
+### 1. Executive Summary
+Phase 21.5 connects the headless `ShopService`, `ShopRegistry`, and catalog definitions to an interactive merchant NPC in Beginners Village.
+
+A dedicated merchant NPC (`Merchant Barnaby`) was registered in Beginners Village Plaza with a distinct warm merchant color and interaction prompt. Approaching Barnaby displays an interaction prompt (`🏪 Merchant Barnaby [SPACE / ENTER] Trade / Shop`). Interacting opens the focused `ShopModal` overlay featuring full Buy and Sell tabs, real-time Gold balance display, item descriptions, and responsive transaction feedback. All successful transactions update active inventory and currency, trigger immediate HUD updates, and safely auto-save player session progress.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/ui/shop-modal/ShopModal.ts`: Focused DOM modal overlay featuring Buy Catalog, Sell Inventory, live Gold balance, transaction validation, and rapid-click debounce protection.
+  - `src/ui/shop-modal/shop-modal.css`: Dark fantasy shop styling for tabs, item rows, prices, and status feedback.
+  - `src/ui/shop-modal/index.ts`: Barrel export for `ShopModal`.
+  - `tests/economy/phase21_5_shop.test.ts`: Automated unit test suite verifying merchant resolution, insufficient Gold prevention, inventory fullness rollback, valid purchases, selling calculations, and invalid quantity rejections.
+- **Modified Files**:
+  - `src/quests/NPCRegistry.ts`: Added `Merchant Barnaby` (`merchant-barnaby`) in Beginners Village plaza (`{ x: 750, y: 520 }`).
+  - `src/economy/ShopRegistry.ts`: Assigned `merchant-barnaby` as merchant for `village-general-store`; added `getShopForMerchant(merchantNpcId)` lookup helper.
+  - `src/ui/index.ts`: Exported `ShopModal`.
+  - `src/scenes/VillageScene.ts`: Detected merchant NPCs in proximity to render `Trade / Shop` prompt, wired interaction to launch `ShopModal`, halted movement while shopping, refreshed HUD on transaction, and cleaned up modal in `shutdown()`.
+
+### 3. Key Architectural Decisions
+- **Decoupled Headless Transaction Engine**:
+  - `ShopModal` delegates completely to `ShopService.buyItem()` and `ShopService.sellItem()`. Prices, sell multipliers, and inventory capacity limits are enforced by domain rules rather than UI logic.
+- **Atomic Operations & Full-Inventory Rollback**:
+  - If a player attempts to purchase an item with a completely full inventory, the purchase is safely aborted without charging any Gold.
+- **Equipped Gear Protection**:
+  - The Sell tab explicitly filters out items currently worn in equipment slots, preventing accidental selling of equipped weapons or armor.
+- **Session Persistence**:
+  - Each completed trade immediately calls `playerSessionManager.saveSession()`, ensuring purchases survive browser reloads.
+
+### 4. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **36 test files passed** (380 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors.
+
+### 5. Manual Verification Checklist (For Browser Testing)
+- [ ] **Merchant Interaction**:
+  1. Boot game as "User" and spawn in Beginners Village.
+  2. Walk right toward coordinates (750, 520).
+  3. Confirm `Merchant Barnaby` is present and prompt displays `🏪 Merchant Barnaby [SPACE / ENTER] Trade / Shop`.
+  4. Press Space or Enter to open the shop. Verify player movement is frozen.
+- [ ] **Buying Items**:
+  1. Under the "Buy Goods" tab, purchase a `Minor Health Potion` (10 G).
+  2. Confirm Gold decreases by 10 G in both the shop header and top-left HUD.
+  3. Close shop, press `I` to open Bag, and verify the potion is present in inventory.
+- [ ] **Insufficient Gold Feedback**:
+  1. Try to purchase an item costing more than current Gold.
+  2. Verify an error message appears and no Gold is deducted.
+- [ ] **Selling Items**:
+  1. Open shop and select "Sell Spoils" tab.
+  2. Sell an unequipped item (e.g. Slime Gel or potion).
+  3. Confirm item count decreases and Gold is credited.
+  4. Confirm currently equipped weapons/armor do not appear in the sell list.
+- [ ] **Persistence**:
+  1. Refresh browser (`F5`), load User session, and verify post-trade Gold and inventory remain intact.
+
+
