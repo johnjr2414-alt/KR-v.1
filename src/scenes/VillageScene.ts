@@ -13,6 +13,11 @@ import type { ShopDefinition } from '../economy/ShopTypes';
 import { getShopForMerchant } from '../economy/ShopRegistry';
 import { getNPCsForMap } from '../quests/NPCRegistry';
 import type { NPCDefinition } from '../quests/NPCTypes';
+import {
+  ProceduralAnimationBuilder,
+  evaluatePlayerAnimationState,
+  type Direction,
+} from './animations';
 import '../ui/zone-warning/zone-warning.css';
 import '../ui/npc-dialogue/npc-dialogue.css';
 
@@ -58,6 +63,7 @@ export class VillageScene extends Phaser.Scene {
   private activeShopModal: ShopModal | null = null;
   private npcs: NPCDefinition[] = [];
   private explorationUI: ExplorationUIManager | null = null;
+  private currentDirection: Direction = 'down';
 
   constructor() {
     super({ key: VillageScene.KEY });
@@ -152,11 +158,23 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) return;
+    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) {
+      if (this.player?.anims && this.player.anims.isPlaying && this.player.anims.currentAnim?.key.includes('walk')) {
+        this.player.play(`player-idle-${this.currentDirection}`, true);
+      }
+      return;
+    }
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
     this.player.setVelocity(velocity.vx, velocity.vy);
+
+    // Update animation state based on velocity
+    const animState = evaluatePlayerAnimationState(velocity.vx, velocity.vy, this.currentDirection);
+    this.currentDirection = animState.direction;
+    if (this.player.anims.currentAnim?.key !== animState.animationKey) {
+      this.player.play(animState.animationKey, true);
+    }
 
     this.checkBuildingProximity();
     this.checkNPCProximity();
@@ -271,26 +289,17 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Player creation ────────────────────────────────────────────
   private createPlayer(): void {
-    if (!this.textures.exists('player-placeholder')) {
-      const g = this.make.graphics({ x: 0, y: 0 });
-      g.fillStyle(0x3b82f6, 1);
-      g.fillRect(0, 0, 28, 36);
-      g.fillStyle(0xfde047, 1);
-      g.fillRect(4, 4, 20, 12);
-      g.lineStyle(2, 0xffffff, 1);
-      g.strokeRect(0, 0, 28, 36);
-      g.generateTexture('player-placeholder', 28, 36);
-      g.destroy();
-    }
+    ProceduralAnimationBuilder.initPlayerAnimations(this);
 
     this.player = this.physics.add.sprite(
       this.spawnPosition.x,
       this.spawnPosition.y,
-      'player-placeholder',
+      'player-frame-down-idle',
     );
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(24, 28);
     this.player.body.setOffset(2, 6);
+    this.player.play('player-idle-down');
     this.physics.add.collider(this.player, this.obstacles);
   }
 

@@ -405,6 +405,41 @@ All 27 journey steps specified in the Development Prompt Handbook passed with ze
 - **Production Build (`npm.cmd run build`)**:
   - Succeeded without errors (`tsc && vite build`).
 
+---
+
+# Phase 22.1 — Player and Monster Animation States
+
+**Date**: 2026-11-08  
+**Phase**: 22.1  
+**Status**: Completed  
+
+### 1. Executive Summary
+Phase 22.1 implements a coherent animation-state layer for player movement and monster entities across `VillageScene`, `HuntingScene`, and `MonsterSprite`.
+
+A procedural sprite generation pipeline (`ProceduralAnimationBuilder`) was developed to render multi-frame directional animations (`down`, `up`, `left`, `right`) with walking leg cycles, idle stabilization, and attack/hurt cues without assuming nonexistent external asset sheets. Pure directional and animation state selection logic was decoupled into `AnimationStateCoordinator` and thoroughly unit-tested.
+
+### 2. Files Created and Modified
+- **New Files**:
+  - `src/scenes/animations/AnimationStateCoordinator.ts`: Pure functions for resolving cardinal directions (`down`, `up`, `left`, `right`), dominant axes on diagonals, and priority-based animation state selection.
+  - `src/scenes/animations/ProceduralAnimationBuilder.ts`: Procedural texture and animation generator creating 4-direction idle, walk, and attack frames at 28x36px resolution.
+  - `src/scenes/animations/index.ts`: Barrel export.
+  - `tests/scenes/phase22_1_animation_states.test.ts`: Automated unit tests for directional vector resolution, stationary direction preservation, and animation key selection.
+  - `docs/PHASE_22_1_IMPLEMENTATION_REPORT.md`: Standalone report with asset requirement list.
+- **Modified Files**:
+  - `src/scenes/VillageScene.ts`: Integrated player directional walk and idle animations, maintaining facing when stationary or when opening modals.
+  - `src/scenes/HuntingScene.ts`: Integrated player directional walk and idle animations.
+  - `src/scenes/monsters/MonsterSprite.ts`: Added animation state tracking and `setAnimationState()` supporting `idle`, `walk`, `attack`, `hurt`, and `defeat` visual tweens.
+  - `docs/IMPLEMENTATION_REPORTS.md`: Consolidated master implementation report updated with Phase 22.1.
+
+### 3. Verification & Test Results
+- **Automated Tests (`npm.cmd test`)**:
+  - **40 test files passed** (401 tests passed, 0 failures).
+- **TypeScript Check (`npx.cmd tsc --noEmit`)**:
+  - 0 errors.
+- **Production Build (`npm.cmd run build`)**:
+  - Succeeded without errors (`tsc && vite build`).
+
+
 
 
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { MonsterDefinition } from '../../core/types/monster';
+import type { AnimationState } from '../animations';
 
 /**
  * MonsterSprite — Phaser-side visual representation of a single monster.
@@ -23,6 +24,7 @@ export class MonsterSprite extends Phaser.GameObjects.Container {
   private readonly nameLabel: Phaser.GameObjects.Text;
   private readonly promptLabel: Phaser.GameObjects.Text;
   private idleTween?: Phaser.Tweens.Tween;
+  private animState: AnimationState = 'idle';
 
   /** Half-dimensions of the sprite rectangle. */
   private static readonly HALF_W = 18;
@@ -102,6 +104,54 @@ export class MonsterSprite extends Phaser.GameObjects.Container {
   /** Returns the static monster data this sprite represents. */
   getDefinition(): MonsterDefinition {
     return this.definition;
+  }
+
+  /** Returns current animation state. */
+  getAnimationState(): AnimationState {
+    return this.animState;
+  }
+
+  /**
+   * Sets animation state and visual feedback without modifying combat logic.
+   */
+  setAnimationState(state: AnimationState): void {
+    if (this.animState === state && state !== 'hurt') return;
+    this.animState = state;
+
+    if (state === 'defeat') {
+      this.defeat();
+      return;
+    }
+
+    if (state === 'hurt') {
+      this.scene.tweens.add({
+        targets: this.visual,
+        alpha: 0.3,
+        duration: 75,
+        yoyo: true,
+        repeat: 2,
+        onComplete: () => {
+          this.drawBody(1.0);
+          this.animState = 'idle';
+        },
+      });
+      return;
+    }
+
+    if (state === 'attack') {
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 1.2,
+        scaleY: 0.8,
+        duration: 100,
+        yoyo: true,
+        onComplete: () => {
+          this.setScale(1.0);
+          this.animState = 'idle';
+        },
+      });
+      return;
+    }
   }
 
   /** Shows the "[SPACE] Fight" interaction prompt above the sprite. */
