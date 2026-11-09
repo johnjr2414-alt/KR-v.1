@@ -1,0 +1,1 @@
+var d=(e=>(e.Weak="weak",e.Normal="normal",e.Strong="strong",e.Elite="elite",e.Boss="boss",e))(d||{});function i(){return typeof window<"u"&&typeof window.matchMedia=="function"&&window.matchMedia("(prefers-reduced-motion: reduce)").matches}export{d as M,i as p};
