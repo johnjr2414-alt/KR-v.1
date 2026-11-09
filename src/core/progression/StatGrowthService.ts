@@ -1,5 +1,7 @@
 import { DEFAULT_STAT_GROWTH_CONFIG, type StatGrowthConfig } from '../../config/statGrowthConfig';
 import type { PlayerData } from '../../player/PlayerData';
+import { calculateAllocationBonuses } from './StatAllocationService';
+import { DEFAULT_STAT_ALLOCATION_CONFIG, type StatAllocationConfig } from '../../config/statAllocationConfig';
 
 /** Computed attributes for a specific level. */
 export interface ComputedAttributes {
@@ -47,28 +49,38 @@ export function calculateStatsForLevel(
 }
 
 /**
- * Updates a player's combat stats based on their current level.
+ * Updates a player's combat stats based on their current level and allocated points.
  * Adjusts currentHp and currentMp proportionally or caps them at the new maximums.
+ *
+ * Base stats come from level-derived growth. Allocation bonuses are layered on top.
  */
 export function applyLevelStatsToPlayer(
   player: PlayerData,
   config: StatGrowthConfig = DEFAULT_STAT_GROWTH_CONFIG,
+  allocationConfig: StatAllocationConfig = DEFAULT_STAT_ALLOCATION_CONFIG,
 ): PlayerData {
   const newStats = calculateStatsForLevel(player.level, config);
+  const bonuses = calculateAllocationBonuses(
+    player.allocatedStats,
+    allocationConfig,
+  );
 
-  const hpDiff = newStats.maxHp - player.maxHp;
-  const mpDiff = newStats.maxMp - player.maxMp;
+  const newMaxHp = newStats.maxHp + bonuses.hp;
+  const newMaxMp = newStats.maxMp + bonuses.mp;
 
-  player.maxHp = newStats.maxHp;
+  const hpDiff = newMaxHp - player.maxHp;
+  const mpDiff = newMaxMp - player.maxMp;
+
+  player.maxHp = newMaxHp;
   player.currentHp = Math.min(player.maxHp, player.currentHp + Math.max(0, hpDiff));
 
-  player.maxMp = newStats.maxMp;
+  player.maxMp = newMaxMp;
   player.currentMp = Math.min(player.maxMp, player.currentMp + Math.max(0, mpDiff));
 
-  player.attack = newStats.attack;
-  player.defense = newStats.defense;
-  player.intelligence = newStats.intelligence;
-  player.critRate = newStats.critRate;
+  player.attack = Math.round((newStats.attack + bonuses.attack) * 10) / 10;
+  player.defense = Math.round((newStats.defense + bonuses.defense) * 10) / 10;
+  player.intelligence = Math.round((newStats.intelligence + bonuses.intelligence) * 10) / 10;
+  player.critRate = newStats.critRate + bonuses.critRate;
   player.movementSpeed = newStats.movementSpeed;
 
   return player;

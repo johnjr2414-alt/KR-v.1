@@ -12,3 +12,21 @@ export {
   applyLevelStatsToPlayer,
   type ComputedAttributes,
 } from './StatGrowthService';
+
+export {
+  allocateStatPoints,
+  recomputePlayerStats,
+  calculateAllocationBonuses,
+  getTotalAllocatedPoints,
+  getTotalStatPointsForLevel,
+  migratePlayerToStatAllocation,
+  type AllocationResult,
+} from './StatAllocationService';
+
+export {
+  ProgressionSimulator,
+  type PlayerArchetype,
+  type LevelProgressionData,
+  type EncounterSimulationResult,
+  type SimulationReportData,
+} from './ProgressionSimulator';

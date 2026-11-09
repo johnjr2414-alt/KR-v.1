@@ -3,6 +3,9 @@ export enum NPCType {
   QuestGiver = 'quest-giver',
   Merchant = 'merchant',
   Scholar = 'scholar',
+  Banker = 'banker',
+  ArenaMaster = 'arena-master',
+  CareerAdvisor = 'career-advisor',
 }
 
 export interface NPCDialogueLine {
@@ -25,4 +28,10 @@ export interface NPCDefinition {
     questCompleted?: string[];
   };
   offeredQuestIds?: string[];
+  /**
+   * Career workplace this NPC represents (Phase 27.6). When set, interacting
+   * with the NPC opens the workplace's career interface. Purely a data link;
+   * the workplace catalogue lists the same NPC under its `npcIds`.
+   */
+  workplaceId?: string;
 }

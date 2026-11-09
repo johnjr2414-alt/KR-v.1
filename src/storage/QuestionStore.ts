@@ -95,6 +95,10 @@ export class IndexedDBQuestionStore implements QuestionStore {
   async init(): Promise<void> {
     if (this.db) return;
 
+    if (typeof indexedDB === 'undefined') {
+      throw new Error('IndexedDB is not available in this environment.');
+    }
+
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = () => {
@@ -200,7 +204,64 @@ export class IndexedDBQuestionStore implements QuestionStore {
   }
 }
 
+// ─── In-memory fallback ──────────────────────────────────────────────────────
+
+/**
+ * Session-scoped question store used when IndexedDB is unavailable (private
+ * browsing, blocked storage, or non-browser hosts). Records survive scene
+ * changes but not a page reload.
+ */
+export class InMemoryQuestionStore implements QuestionStore {
+  private questions = new Map<string, Question>();
+  private tombstones = new Set<string>();
+
+  async init(): Promise<void> {}
+
+  async getAll(): Promise<Question[]> {
+    return [...this.questions.values()];
+  }
+
+  async getById(id: string): Promise<Question | undefined> {
+    return this.questions.get(id);
+  }
+
+  async save(question: Question): Promise<void> {
+    this.questions.set(question.id, { ...question });
+  }
+
+  async saveAll(questions: Question[]): Promise<void> {
+    for (const question of questions) {
+      this.questions.set(question.id, { ...question });
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    this.questions.delete(id);
+  }
+
+  async getTombstones(): Promise<string[]> {
+    return [...this.tombstones];
+  }
+
+  async addTombstone(id: string): Promise<void> {
+    this.tombstones.add(id);
+  }
+
+  async clear(): Promise<void> {
+    this.questions.clear();
+    this.tombstones.clear();
+  }
+}
+
 // ─── Singleton ───────────────────────────────────────────────────────────────
 
+/** Selects IndexedDB persistence when available, otherwise a session-only store. */
+export function createQuestionStore(): QuestionStore {
+  if (typeof indexedDB !== 'undefined') {
+    return new IndexedDBQuestionStore();
+  }
+  return new InMemoryQuestionStore();
+}
+
 /** Default application-wide question store instance. */
-export const questionStore: QuestionStore = new IndexedDBQuestionStore();
+export const questionStore: QuestionStore = createQuestionStore();

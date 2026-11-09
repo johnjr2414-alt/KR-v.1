@@ -1,12 +1,20 @@
 import Phaser from 'phaser';
 import { BEGINNERS_HUNTING_GROUND, HUNTING_ZONE_REGISTRY, type MapDefinition } from '../world';
 import type { HuntingZoneDefinition } from '../world/HuntingZoneDefinition';
-import { calculateMovementVelocity, DEFAULT_MOVE_SPEED } from '../player';
+import { calculateMovementVelocity, DEFAULT_MOVE_SPEED, playerSessionManager } from '../player';
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import type { SceneTransitionData } from './VillageScene';
 import { monsterSpawner } from '../monsters';
 import { MonsterSprite } from './monsters/MonsterSprite';
 import type { MonsterDefinition } from '../core/types/monster';
+import { ExplorationUIManager } from '../ui/exploration-hud';
+import {
+  ProceduralAnimationBuilder,
+  evaluatePlayerAnimationState,
+  type Direction,
+} from './animations';
+import { InteractionGuard } from './interactions';
+import { audioManager } from '../audio';
 
 /** Number of monsters to spawn per zone visit. */
 const MONSTERS_PER_ZONE = 6;
@@ -40,6 +48,9 @@ export class HuntingScene extends Phaser.Scene {
   private nearbyMonster: MonsterSprite | null = null;
   /** Interaction keys. */
   private interactKey!: Phaser.Input.Keyboard.Key;
+  private explorationUI: ExplorationUIManager | null = null;
+  private currentDirection: Direction = 'down';
+  private interactionGuard = new InteractionGuard({ cooldownMs: 300 });
 
   constructor() {
     super({ key: HuntingScene.KEY });
@@ -48,6 +59,7 @@ export class HuntingScene extends Phaser.Scene {
   init(data?: SceneTransitionData & { zoneId?: string }): void {
     this.isTransitioning = false;
     this.nearbyMonster = null;
+    this.interactionGuard.reset();
     this.monsterSprites = [];
 
     if (data?.spawnPosition) {
@@ -67,6 +79,15 @@ export class HuntingScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Smooth camera fade in on scene entry
+    this.cameras.main.fadeIn(250, 10, 10, 15);
+
+    // Play hunting zone wilderness BGM
+    audioManager.playMusic('bgm-wilderness');
+
+    // Save on entering hunting zone
+    void playerSessionManager.saveSession();
+
     const { width, height } = this.mapData.bounds;
 
     this.physics.world.setBounds(0, 0, width, height);
@@ -102,35 +123,60 @@ export class HuntingScene extends Phaser.Scene {
 
     this.inputAdapter = new PhaserInputAdapter(this);
 
+    // ── Exploration HUD and Panels Coordinator ──────────────────
+    this.explorationUI = new ExplorationUIManager({
+      scene: this,
+      inputAdapter: this.inputAdapter,
+      playerSprite: this.player,
+      onQuitToMenu: () => {
+        this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+          if (progress === 1) {
+            this.scene.start('BootScene');
+          }
+        });
+      },
+    });
+
     this.cameras.main.setBounds(0, 0, width, height);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
-    // HUD
+    // Zone title label (top right to avoid overlapping HUD)
     const zoneName = this.zoneData.name ?? this.mapData.name;
-    const hud = this.add.text(
-      16, 16,
+    this.add.text(
+      width - 16, 16,
       `${zoneName}  (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
       {
         fontFamily: 'Arial',
-        fontSize: '16px',
+        fontSize: '14px',
         color: '#ef4444',
         backgroundColor: '#111827dd',
         padding: { x: 8, y: 4 },
       },
-    );
-    hud.setScrollFactor(0);
+    ).setScrollFactor(0).setOrigin(1, 0);
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player || !this.player.body) return;
+    if (this.isTransitioning || !this.player || !this.player.body || this.explorationUI?.isPanelOpen()) {
+      if (this.player?.anims && this.player.anims.isPlaying && this.player.anims.currentAnim?.key.includes('walk')) {
+        this.player.play(`player-idle-${this.currentDirection}`, true);
+      }
+      return;
+    }
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
     this.player.setVelocity(velocity.vx, velocity.vy);
 
+    // Update animation state based on velocity
+    const animState = evaluatePlayerAnimationState(velocity.vx, velocity.vy, this.currentDirection);
+    this.currentDirection = animState.direction;
+    if (this.player.anims.currentAnim?.key !== animState.animationKey) {
+      this.player.play(animState.animationKey, true);
+    }
+
     this.updateMonsterProximity();
 
-    if (this.nearbyMonster && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+    if (this.nearbyMonster && Phaser.Input.Keyboard.JustDown(this.interactKey) && this.interactionGuard.canTrigger()) {
       this.initiateEncounter(this.nearbyMonster.getDefinition());
     }
   }
@@ -195,10 +241,14 @@ export class HuntingScene extends Phaser.Scene {
   private initiateEncounter(monster: MonsterDefinition): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.interactionGuard.setLocked(true);
 
     this.player.setVelocity(0, 0);
 
     const playerPos = { x: this.player.x, y: this.player.y };
+
+    // Auto-save session before entering battle
+    void playerSessionManager.saveSession();
 
     // Clean up active monster sprites before transitioning
     for (const sprite of this.monsterSprites) {
@@ -241,27 +291,18 @@ export class HuntingScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
-    if (!this.textures.exists('player-placeholder')) {
-      const g = this.make.graphics({ x: 0, y: 0 });
-      g.fillStyle(0x3b82f6, 1);
-      g.fillRect(0, 0, 28, 36);
-      g.fillStyle(0xfde047, 1);
-      g.fillRect(4, 4, 20, 12);
-      g.lineStyle(2, 0xffffff, 1);
-      g.strokeRect(0, 0, 28, 36);
-      g.generateTexture('player-placeholder', 28, 36);
-      g.destroy();
-    }
+    ProceduralAnimationBuilder.initPlayerAnimations(this);
 
     this.player = this.physics.add.sprite(
       this.spawnPosition.x,
       this.spawnPosition.y,
-      'player-placeholder',
+      'player-frame-down-idle',
     );
 
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(24, 28);
     this.player.body.setOffset(2, 6);
+    this.player.play('player-idle-down');
 
     this.physics.add.collider(this.player, this.obstacles);
   }
@@ -300,6 +341,7 @@ export class HuntingScene extends Phaser.Scene {
   ): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.interactionGuard.setLocked(true);
 
     // Clean up monster tween/state before leaving
     for (const sprite of this.monsterSprites) {
@@ -309,12 +351,20 @@ export class HuntingScene extends Phaser.Scene {
 
     this.player.setVelocity(0, 0);
 
-    this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+    // Save session on exit
+    void playerSessionManager.saveSession();
+
+    this.cameras.main.fade(250, 10, 10, 15, false, (_camera: unknown, progress: number) => {
       if (progress === 1) {
         if (targetMapId === 'beginners-village') {
           this.scene.start('VillageScene', { spawnPosition: entryPosition });
         }
       }
     });
+  }
+
+  shutdown(): void {
+    this.explorationUI?.destroy();
+    this.explorationUI = null;
   }
 }

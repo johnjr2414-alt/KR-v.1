@@ -1,2 +1,5 @@
-export { StartMenu } from './StartMenu';
-export type { RoleSelectedCallback } from './StartMenu';
+export {
+  StartMenu,
+  buildStartMenuMarkup,
+  type StartMenuHandlers,
+} from './StartMenu';

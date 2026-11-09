@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
-import { QuestionRepository } from '../questions/retrieval/QuestionRepository';
-import { QuestionManager } from '../questions/management/QuestionManager';
-import { questionStore } from '../storage';
-import { AdminDashboard } from '../ui/admin';
+import { sharedQuestionManager, QuestionManager } from '../questions';
+import type { AdminDashboard } from '../ui/admin';
+import { roleManager } from '../core/roles';
 import { BootScene } from './BootScene';
-import '../ui/admin/admin-dashboard.css';
 
 /**
  * AdminDashboardScene — Phaser scene hosting the Super Admin dashboard overlay.
@@ -24,12 +22,19 @@ export class AdminDashboardScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Defence in depth: the gate should be the only path here, but never render
+    // admin tools for a session that does not hold the Super Admin role.
+    if (!roleManager.isSuperAdmin()) {
+      console.warn('[AdminDashboardScene] Blocked: Super Admin role is required.');
+      this.scene.start(BootScene.KEY);
+      return;
+    }
+
     const { width, height } = this.scale;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d0d1a);
 
-    const repository = new QuestionRepository();
-    this.manager = new QuestionManager(repository, questionStore);
+    this.manager = sharedQuestionManager;
 
     void this.initDashboard();
   }
@@ -42,6 +47,15 @@ export class AdminDashboardScene extends Phaser.Scene {
     } catch (err) {
       console.error('[AdminDashboardScene] Error initializing QuestionManager:', err);
     }
+
+    // Admin tooling is only needed for Super Admin sessions, so its code and
+    // stylesheet are loaded on demand instead of inflating the initial bundle.
+    const [{ AdminDashboard }] = await Promise.all([
+      import('../ui/admin'),
+      import('../ui/admin/admin-dashboard.css'),
+    ]);
+
+    if (!this.scene.isActive()) return;
 
     this.dashboard = new AdminDashboard(this.manager, () => {
       this.handleExit();

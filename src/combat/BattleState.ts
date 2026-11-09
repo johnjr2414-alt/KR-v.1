@@ -25,6 +25,8 @@ export interface BattleState {
   monster: MonsterDefinition;
   playerCurrentHp: number;
   playerMaxHp: number;
+  playerCurrentMp: number;
+  playerMaxMp: number;
   monsterCurrentHp: number;
   monsterMaxHp: number;
   totalQuestionCount: number;
@@ -49,6 +51,7 @@ export interface BattleEndSummary {
   correctAnswers: number;
   incorrectAnswers: number;
   remainingPlayerHp: number;
+  remainingPlayerMp: number;
   remainingMonsterHp: number;
   expEarned: number;
   goldEarned: number;

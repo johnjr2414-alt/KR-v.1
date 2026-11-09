@@ -21,9 +21,12 @@ import { DamageCalculator, damageCalculator } from './DamageCalculator';
 import type { AnswerEvaluationResult } from '../questions/evaluation/AnswerEvaluator';
 import { MasteryManager, masteryManager } from '../mastery/MasteryManager';
 import type { MasteryGainResult } from '../core/types/mastery';
+import { createUniqueId } from '../core/uniqueId';
 
 import { RewardCalculator, rewardCalculator } from './rewards/RewardCalculator';
 import type { MonsterRewardResult } from './rewards/RewardTypes';
+import { CombatSkillTracker, type SkillActivationResult } from './CombatSkillTracker';
+import { SkillManager, getSkillDefinition, passiveSkillCalculator, type PassiveSkillBonuses } from '../skills';
 
 export interface BattleSessionOptions {
   player: PlayerData;
@@ -33,6 +36,7 @@ export interface BattleSessionOptions {
   damageCalculator?: DamageCalculator;
   masteryManager?: MasteryManager;
   rewardCalculator?: RewardCalculator;
+  skillManager?: SkillManager;
   questionCountConfig?: Record<string, QuestionCountConfig>;
   /** Optional deterministic question count override (for tests) */
   fixedQuestionCount?: number;
@@ -52,6 +56,9 @@ export class BattleSession {
   private readonly damageCalc: DamageCalculator;
   private readonly mastery: MasteryManager;
   private readonly rewards: RewardCalculator;
+  private readonly skillManager?: SkillManager;
+  private readonly skillTracker: CombatSkillTracker = new CombatSkillTracker();
+  private readonly passiveBonuses: PassiveSkillBonuses;
   private currentStreak = 0;
   private pendingMasteryGains: MasteryGainResult[] = [];
   private victoryRewards: MonsterRewardResult | null = null;
@@ -61,6 +68,7 @@ export class BattleSession {
     this.damageCalc = options.damageCalculator || damageCalculator;
     this.mastery = options.masteryManager || masteryManager;
     this.rewards = options.rewardCalculator || rewardCalculator;
+    this.skillManager = options.skillManager;
 
     // 1. Calculate PvE difficulty profile
     const profile: PvEQuestionProfile = diffEngine.createQuestionProfile(
@@ -82,13 +90,22 @@ export class BattleSession {
       totalQuestionCount,
     );
 
-    // 4. Initialize State
+    // Calculate passive bonuses without mutating base player
+    this.passiveBonuses = passiveSkillCalculator.calculatePassiveBonuses(options.skillManager, 'pve');
+
+    // 4. Initialize State with derived effective combat attributes (base + passive modifiers)
     this.state = {
-      id: crypto.randomUUID(),
-      player: { ...options.player },
+      id: createUniqueId(),
+      player: {
+        ...options.player,
+        defense: options.player.defense + this.passiveBonuses.flatDefense,
+        critRate: options.player.critRate + this.passiveBonuses.critRatePercent / 100,
+      },
       monster: { ...options.monster },
       playerCurrentHp: options.player.currentHp,
       playerMaxHp: options.player.maxHp,
+      playerCurrentMp: options.player.currentMp,
+      playerMaxMp: options.player.maxMp,
       monsterCurrentHp: options.monster.maxHp,
       monsterMaxHp: options.monster.maxHp,
       totalQuestionCount,
@@ -103,8 +120,97 @@ export class BattleSession {
   }
 
   /**
-   * Current snapshot of battle state.
+   * Retrieves the current skill tracker for inspecting active buffs, shields, and cooldowns.
    */
+  getSkillTracker(): CombatSkillTracker {
+    return this.skillTracker;
+  }
+
+  /**
+   * Retrieves the active passive skill bonuses applied to this battle encounter.
+   */
+  getPassiveBonuses(): PassiveSkillBonuses {
+    return this.passiveBonuses;
+  }
+
+  /**
+   * Activates a skill in combat.
+   */
+  activateSkill(skillId: string): SkillActivationResult {
+    if (this.isBattleOver()) {
+      return { success: false, error: 'Cannot activate skills when battle is over', skillId, mpCost: 0 };
+    }
+
+    const def = getSkillDefinition(skillId);
+    if (!def) {
+      return { success: false, error: `Skill "${skillId}" not found`, skillId, mpCost: 0 };
+    }
+
+    if (def.type !== 'active') {
+      return { success: false, error: 'Cannot activate a passive skill', skillId, mpCost: 0 };
+    }
+
+    if (def.availability === 'pvp') {
+      return { success: false, error: 'Skill is only available in PvP', skillId, mpCost: 0 };
+    }
+
+    // Check unlock
+    const skillLevel = this.skillManager ? this.skillManager.getSkillLevel(skillId) : 1;
+    if (skillLevel < 1) {
+      return { success: false, error: 'Skill is not unlocked', skillId, mpCost: 0 };
+    }
+
+    const lvlConfig = def.levels[skillLevel];
+    if (!lvlConfig) {
+      return { success: false, error: 'Invalid skill configuration', skillId, mpCost: 0 };
+    }
+
+    // Check cooldown
+    if (this.skillTracker.isSkillOnCooldown(skillId)) {
+      return {
+        success: false,
+        error: `Skill on cooldown (${this.skillTracker.getCooldown(skillId)} turns remaining)`,
+        skillId,
+        mpCost: 0,
+      };
+    }
+
+    // Check MP (accounting for passive mana-cost-reduction-percent)
+    const effectiveMpCost = Math.max(
+      1,
+      Math.floor(lvlConfig.mpCost * (1 - this.passiveBonuses.manaCostReductionPercent / 100)),
+    );
+
+    if (this.state.playerCurrentMp < effectiveMpCost) {
+      return {
+        success: false,
+        error: `Insufficient MP. Required: ${effectiveMpCost}, Available: ${this.state.playerCurrentMp}`,
+        skillId,
+        mpCost: effectiveMpCost,
+      };
+    }
+
+    // Deduct MP only after validation passes
+    this.state.playerCurrentMp -= effectiveMpCost;
+
+    // Apply effects
+    const { shieldGained, healAmount } = this.skillTracker.applySkill(def, skillLevel);
+
+    if (healAmount > 0) {
+      this.state.playerCurrentHp = Math.min(this.state.playerMaxHp, this.state.playerCurrentHp + healAmount);
+    }
+
+    let message = `Activated ${def.name}!`;
+    if (shieldGained > 0) message += ` (Shield: +${shieldGained})`;
+    if (healAmount > 0) message += ` (Healed: +${healAmount} HP)`;
+
+    return {
+      success: true,
+      skillId,
+      mpCost: effectiveMpCost,
+      message,
+    };
+  }
   getState(): Readonly<BattleState> {
     return this.state;
   }
@@ -156,7 +262,10 @@ export class BattleSession {
         this.state.player.critRate,
         forceCrit,
       );
-      damageToMonster = dmgResult.damage;
+
+      // Apply skill damage boost multiplier if active
+      const dmgMult = this.skillTracker.getDamageMultiplier();
+      damageToMonster = Math.round(dmgResult.damage * dmgMult);
       isCritical = dmgResult.isCritical;
 
       this.state.monsterCurrentHp = Math.max(0, this.state.monsterCurrentHp - damageToMonster);
@@ -176,10 +285,14 @@ export class BattleSession {
       // 2. Incorrect / Timeout: Monster strikes Player (DAMAGE-PLAYER rule)
       this.state.incorrectAnswersCount++;
       this.currentStreak = 0; // Streak reset
-      damageToPlayer = this.damageCalc.calculateMonsterDamage(
+      const rawMonsterDamage = this.damageCalc.calculateMonsterDamage(
         this.state.monster.attack,
         this.state.player.defense,
       );
+
+      // Apply shield absorption from active skills
+      const { finalDamage } = this.skillTracker.absorbDamage(rawMonsterDamage);
+      damageToPlayer = finalDamage;
 
       this.state.playerCurrentHp = Math.max(0, this.state.playerCurrentHp - damageToPlayer);
 
@@ -206,13 +319,17 @@ export class BattleSession {
 
     this.state.turns.push(turnResult);
 
+    // Advance skill cooldowns and buff durations at the end of the combat turn
+    this.skillTracker.advanceTurn();
+
     // 3. Check termination conditions
     if (this.state.monsterCurrentHp <= 0) {
       this.state.status = BattleStatus.Victory;
-      // Calculate and emit victory rewards
+      // Calculate and emit victory rewards (scaling expMultiplier by passive expMultiplier)
+      const effectiveExpMultiplier = this.state.profile.rewardMultiplier * this.passiveBonuses.expMultiplier;
       this.victoryRewards = this.rewards.calculateRewards(
         this.state.monster,
-        this.state.profile.rewardMultiplier,
+        effectiveExpMultiplier,
       );
       this.rewards.emitMonsterDefeated(this.state.monster, this.victoryRewards);
     } else if (this.state.playerCurrentHp <= 0) {
@@ -262,6 +379,7 @@ export class BattleSession {
       correctAnswers: this.state.correctAnswersCount,
       incorrectAnswers: this.state.incorrectAnswersCount,
       remainingPlayerHp: this.state.playerCurrentHp,
+      remainingPlayerMp: this.state.playerCurrentMp,
       remainingMonsterHp: this.state.monsterCurrentHp,
       expEarned,
       goldEarned,

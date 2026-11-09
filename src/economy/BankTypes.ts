@@ -45,3 +45,9 @@ export interface BusinessModel {
   dailyExpenses: number;
   productionItemIds: string[];
 }
+
+export interface BankState {
+  account: BankAccount;
+  activeInvestments: InvestmentOpportunity[];
+  businesses: BusinessModel[];
+}

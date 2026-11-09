@@ -1,0 +1,149 @@
+/* ── Knowledge Realms Responsive UI, High-Contrast Accessibility, and Reduced Motion ── */
+
+:root {
+  --kr-focus-ring: 2px solid #60a5fa;
+  --kr-focus-offset: 2px;
+  --kr-text-main: #f9fafb;
+  --kr-text-muted: #94a3b8;
+  --kr-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Set by the pause-menu Text Size control; all UI font sizes multiply by this. */
+  --kr-font-scale: 1;
+}
+
+html {
+  font-family: var(--kr-font-family);
+}
+
+/* Base text size for elements that inherit instead of declaring their own. */
+body {
+  font-size: calc(16px * var(--kr-font-scale, 1));
+}
+
+/* Long player, item, quest, and localized strings must wrap instead of clipping. */
+body,
+button,
+input,
+select,
+textarea,
+label {
+  overflow-wrap: break-word;
+}
+
+/* Player/monster names stay on one line and ellipsize rather than push the HUD. */
+.exploration-hud__name,
+.battle-hud__name > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Universal Interactive Focus Visibility ── */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--kr-focus-ring) !important;
+  outline-offset: var(--kr-focus-offset) !important;
+}
+
+/* ── Screen-Reader Only Helper ── */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ── Modal Container Scaling & Responsive Padding ── */
+.inventory-modal,
+.mastery-modal,
+.quest-modal,
+.shop-modal,
+.pause-modal,
+.question-modal,
+.zone-warning-modal,
+.admin-dashboard {
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  box-sizing: border-box !important;
+}
+
+/* ── Responsive Adaptations for Laptop & Compact Screens (<= 900px) ── */
+@media (max-width: 900px), (max-height: 700px) {
+  .exploration-hud {
+    padding: 6px 12px !important;
+    gap: 8px !important;
+  }
+
+  .exploration-hud-stat {
+    font-size: calc(11px * var(--kr-font-scale, 1)) !important;
+  }
+
+  .exploration-hud-bar-container {
+    width: 90px !important;
+    height: 10px !important;
+  }
+
+  .exploration-hud-actions button {
+    padding: 4px 8px !important;
+    font-size: calc(11px * var(--kr-font-scale, 1)) !important;
+  }
+
+  .battle-hud {
+    padding: 8px 12px !important;
+  }
+
+  .battle-hud__card {
+    min-width: 160px !important;
+    padding: 8px 12px !important;
+  }
+
+  .battle-hud__name {
+    font-size: calc(13px * var(--kr-font-scale, 1)) !important;
+  }
+
+  .battle-hud__hp-text {
+    font-size: calc(11px * var(--kr-font-scale, 1)) !important;
+  }
+
+  .quest-journal-content,
+  .shop-modal-content,
+  .inventory-content {
+    max-height: 60vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ── High Contrast & Accessible Status Text ── */
+.kr-badge-icon {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* ── System Reduced Motion Preference ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .combat-badge--critical {
+    animation: none !important;
+  }
+
+  .start-menu__btn:hover,
+  .start-menu__btn:active {
+    transform: none !important;
+  }
+}

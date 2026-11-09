@@ -3,13 +3,26 @@ import { BEGINNERS_VILLAGE, type MapDefinition } from '../world';
 import { BUILDING_REGISTRY, HUNTING_ZONE_REGISTRY } from '../world';
 import { checkZoneAccess } from '../world/zoneAccess';
 import type { BuildingDefinition } from '../world/BuildingDefinition';
-import { calculateMovementVelocity, DEFAULT_MOVE_SPEED } from '../player';
+import { calculateMovementVelocity, DEFAULT_MOVE_SPEED, playerSessionManager } from '../player';
 import { PhaserInputAdapter } from '../player/movement/PhaserInputAdapter';
 import { ZoneWarningModal } from '../ui/zone-warning';
 import { NPCDialogueModal } from '../ui/npc-dialogue/NPCDialogueModal';
+import { ExplorationUIManager } from '../ui/exploration-hud';
+import { ShopModal } from '../ui/shop-modal';
+import { BankModal } from '../ui/bank-modal';
+import { ArenaModal } from '../ui/arena-modal';
+import { CareerModal } from '../ui/career-modal';
+import type { ShopDefinition } from '../economy/ShopTypes';
+import { getShopForMerchant } from '../economy/ShopRegistry';
 import { getNPCsForMap } from '../quests/NPCRegistry';
 import type { NPCDefinition } from '../quests/NPCTypes';
-import { questManager } from '../quests/QuestManager';
+import {
+  ProceduralAnimationBuilder,
+  evaluatePlayerAnimationState,
+  type Direction,
+} from './animations';
+import { InteractionGuard, isWithinInteractionRange } from './interactions';
+import { audioManager } from '../audio';
 import '../ui/zone-warning/zone-warning.css';
 import '../ui/npc-dialogue/npc-dialogue.css';
 
@@ -32,9 +45,6 @@ const LANDMARK_TO_BUILDING_ID: Record<string, string> = {
 // Player must be within this many pixels (Chebyshev) to interact
 const INTERACTION_RANGE = 80;
 
-// Danger delta threshold for mandatory warning
-const PLAYER_TEST_LEVEL = 1; // placeholder: replaced by real PlayerData in Phase 17
-
 export interface SceneTransitionData {
   spawnPosition?: { x: number; y: number };
 }
@@ -55,7 +65,14 @@ export class VillageScene extends Phaser.Scene {
   private nearbyBuilding: BuildingDefinition | null = null;
   private nearbyNPC: NPCDefinition | null = null;
   private activeDialogueModal: NPCDialogueModal | null = null;
+  private activeShopModal: ShopModal | null = null;
+  private activeBankModal: BankModal | null = null;
+  private activeArenaModal: ArenaModal | null = null;
+  private activeCareerModal: CareerModal | null = null;
   private npcs: NPCDefinition[] = [];
+  private explorationUI: ExplorationUIManager | null = null;
+  private currentDirection: Direction = 'down';
+  private interactionGuard = new InteractionGuard({ cooldownMs: 300 });
 
   constructor() {
     super({ key: VillageScene.KEY });
@@ -64,6 +81,7 @@ export class VillageScene extends Phaser.Scene {
   init(data?: SceneTransitionData): void {
     this.isTransitioning = false;
     this.nearbyBuilding = null;
+    this.interactionGuard.reset();
     if (data?.spawnPosition) {
       this.spawnPosition = { ...data.spawnPosition };
     } else {
@@ -72,6 +90,15 @@ export class VillageScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Smooth camera fade in on scene entry
+    this.cameras.main.fadeIn(250, 10, 10, 15);
+
+    // Play village ambient BGM
+    audioManager.playMusic('bgm-village');
+
+    // Auto-save on entering village
+    void playerSessionManager.saveSession();
+
     const { width, height } = this.mapData.bounds;
 
     this.physics.world.setBounds(0, 0, width, height);
@@ -119,16 +146,25 @@ export class VillageScene extends Phaser.Scene {
       padding: { x: 8, y: 5 },
     }).setDepth(10).setVisible(false);
 
-    // ── HUD ──────────────────────────────────────────────────────
-    this.add.text(16, 16,
-      `${this.mapData.name} (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
-      { fontFamily: 'Arial', fontSize: '16px', color: '#f0c060', backgroundColor: '#111827dd', padding: { x: 8, y: 4 } },
-    ).setScrollFactor(0);
+    // ── Exploration HUD and Panels Coordinator ──────────────────
+    this.explorationUI = new ExplorationUIManager({
+      scene: this,
+      inputAdapter: this.inputAdapter,
+      playerSprite: this.player,
+      onQuitToMenu: () => {
+        this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+          if (progress === 1) {
+            this.scene.start('BootScene');
+          }
+        });
+      },
+    });
 
-    this.add.text(16, 46, 'Move: WASD / Arrow Keys  |  Approach buildings to interact', {
-      fontFamily: 'Arial', fontSize: '12px', color: '#9ca3af',
-      backgroundColor: '#111827aa', padding: { x: 6, y: 2 },
-    }).setScrollFactor(0);
+    // ── Zone title label ─────────────────────────────────────────
+    this.add.text(this.scale.width - 16, 16,
+      `${this.mapData.name} (Lv. ${this.mapData.entryRequirements.recommendedMinLevel}–${this.mapData.entryRequirements.recommendedMaxLevel})`,
+      { fontFamily: 'Arial', fontSize: '14px', color: '#f0c060', backgroundColor: '#111827dd', padding: { x: 8, y: 4 } },
+    ).setScrollFactor(0).setOrigin(1, 0);
 
     // ── Interact key (Space / Enter) ─────────────────────────────
     if (this.input.keyboard) {
@@ -138,11 +174,23 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal) return;
+    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.activeShopModal || this.activeCareerModal || this.explorationUI?.isPanelOpen()) {
+      if (this.player?.anims && this.player.anims.isPlaying && this.player.anims.currentAnim?.key.includes('walk')) {
+        this.player.play(`player-idle-${this.currentDirection}`, true);
+      }
+      return;
+    }
 
     const inputState = this.inputAdapter.getInputState();
     const velocity = calculateMovementVelocity(inputState, DEFAULT_MOVE_SPEED);
     this.player.setVelocity(velocity.vx, velocity.vy);
+
+    // Update animation state based on velocity
+    const animState = evaluatePlayerAnimationState(velocity.vx, velocity.vy, this.currentDirection);
+    this.currentDirection = animState.direction;
+    if (this.player.anims.currentAnim?.key !== animState.animationKey) {
+      this.player.play(animState.animationKey, true);
+    }
 
     this.checkBuildingProximity();
     this.checkNPCProximity();
@@ -151,6 +199,7 @@ export class VillageScene extends Phaser.Scene {
   // ── NPC creation ───────────────────────────────────────────────
   private createNPCs(): void {
     this.npcs = getNPCsForMap(this.mapData.id);
+    const playerLevel = playerSessionManager.getPlayer().level;
 
     for (const npc of this.npcs) {
       const { x, y } = npc.position;
@@ -163,7 +212,7 @@ export class VillageScene extends Phaser.Scene {
       gfx.strokeCircle(x, y, 16);
 
       // NPC name and quest indicator
-      const questStatus = questManager.getNpcQuestStatus(npc.id, PLAYER_TEST_LEVEL);
+      const questStatus = playerSessionManager.quests.getNpcQuestStatus(npc.id, playerLevel);
       const icon = questStatus === 'ready-turn-in' ? '❓ ' : questStatus === 'available' ? '❗ ' : '';
 
       this.add.text(x, y - 28, `${icon}${npc.name}`, {
@@ -180,6 +229,7 @@ export class VillageScene extends Phaser.Scene {
   private checkNPCProximity(): void {
     const px = this.player.x;
     const py = this.player.y;
+    const playerLevel = playerSessionManager.getPlayer().level;
 
     let nearest: NPCDefinition | null = null;
     let nearestDist = Infinity;
@@ -198,11 +248,23 @@ export class VillageScene extends Phaser.Scene {
     this.nearbyNPC = nearest;
 
     if (nearest && !this.nearbyBuilding) {
-      const questStatus = questManager.getNpcQuestStatus(nearest.id, PLAYER_TEST_LEVEL);
-      const promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
+      const shopDef = getShopForMerchant(nearest.id);
+      let promptTitle = 'Talk';
+      let icon = '💬';
+
+      if (shopDef) {
+        promptTitle = 'Trade / Shop';
+        icon = '🏪';
+      } else if (nearest.workplaceId) {
+        promptTitle = 'Visit Workplace';
+        icon = '🎓';
+      } else {
+        const questStatus = playerSessionManager.quests.getNpcQuestStatus(nearest.id, playerLevel);
+        promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
+      }
 
       this.interactPrompt
-        .setText(`💬 ${nearest.name}\n[SPACE / ENTER] ${promptTitle}`)
+        .setText(`${icon} ${nearest.name}\n[SPACE / ENTER] ${promptTitle}`)
         .setPosition(this.player.x - 60, this.player.y - 80)
         .setVisible(true);
     } else if (!nearest && !this.nearbyBuilding) {
@@ -247,26 +309,17 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Player creation ────────────────────────────────────────────
   private createPlayer(): void {
-    if (!this.textures.exists('player-placeholder')) {
-      const g = this.make.graphics({ x: 0, y: 0 });
-      g.fillStyle(0x3b82f6, 1);
-      g.fillRect(0, 0, 28, 36);
-      g.fillStyle(0xfde047, 1);
-      g.fillRect(4, 4, 20, 12);
-      g.lineStyle(2, 0xffffff, 1);
-      g.strokeRect(0, 0, 28, 36);
-      g.generateTexture('player-placeholder', 28, 36);
-      g.destroy();
-    }
+    ProceduralAnimationBuilder.initPlayerAnimations(this);
 
     this.player = this.physics.add.sprite(
       this.spawnPosition.x,
       this.spawnPosition.y,
-      'player-placeholder',
+      'player-frame-down-idle',
     );
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(24, 28);
     this.player.body.setOffset(2, 6);
+    this.player.play('player-idle-down');
     this.physics.add.collider(this.player, this.obstacles);
   }
 
@@ -311,12 +364,14 @@ export class VillageScene extends Phaser.Scene {
       const bld = BUILDING_REGISTRY[bldId];
       if (!bld) continue;
 
-      const dx = Math.abs(px - landmark.position.x);
-      const dy = Math.abs(py - landmark.position.y);
-      const chebyshev = Math.max(dx, dy);
-      if (chebyshev < INTERACTION_RANGE && chebyshev < nearestDist) {
-        nearestDist = chebyshev;
-        nearest = bld;
+      if (isWithinInteractionRange(px, py, landmark.position.x, landmark.position.y, INTERACTION_RANGE)) {
+        const dx = Math.abs(px - landmark.position.x);
+        const dy = Math.abs(py - landmark.position.y);
+        const chebyshev = Math.max(dx, dy);
+        if (chebyshev < nearestDist) {
+          nearestDist = chebyshev;
+          nearest = bld;
+        }
       }
     }
 
@@ -334,11 +389,34 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.activeArenaModal || this.activeCareerModal || this.explorationUI?.isPanelOpen()) return;
+    if (!this.interactionGuard.canTrigger()) return;
 
     // Prioritize NPC interaction if close to an NPC
     if (this.nearbyNPC) {
-      this.openNPCDialogue(this.nearbyNPC);
+      if (this.nearbyNPC.id === 'gladius-the-bold') {
+        this.openArenaModal();
+        return;
+      }
+      if (this.nearbyNPC.id === 'treasurer-aurelius') {
+        this.openBankModal();
+        return;
+      }
+      const shop = getShopForMerchant(this.nearbyNPC.id);
+      if (shop) {
+        this.openShopModal(shop);
+      } else if (
+        this.nearbyNPC.workplaceId &&
+        (this.nearbyNPC.offeredQuestIds?.length ?? 0) === 0
+      ) {
+        // Pure workplace staff / career contact — open the career interface.
+        this.openCareerModal(this.nearbyNPC.workplaceId);
+      } else {
+        // Everyone else (including career NPCs that also give quests) uses the
+        // existing dialogue system; career contacts add a career-interface
+        // button there, so no duplicate NPC interaction system is created.
+        this.openNPCDialogue(this.nearbyNPC);
+      }
       return;
     }
 
@@ -355,22 +433,111 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private openNPCDialogue(npc: NPCDefinition): void {
-    if (this.activeDialogueModal) return;
+    if (this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.activeArenaModal) return;
 
     this.player.setVelocity(0, 0);
+    const player = playerSessionManager.getPlayer();
+    const workplaceId = npc.workplaceId;
+
     this.activeDialogueModal = new NPCDialogueModal({
       npc,
-      questManager,
-      playerLevel: PLAYER_TEST_LEVEL,
+      questManager: playerSessionManager.quests,
+      playerLevel: player.level,
       onClose: () => {
         this.activeDialogueModal = null;
+        void playerSessionManager.saveSession();
       },
       onQuestUpdate: () => {
+        void playerSessionManager.saveSession();
         // Refresh scene NPC icons if needed
       },
+      // Career contacts (workplace staff) expose the career interface without a
+      // separate NPC system: the dialogue modal closes and the career UI opens.
+      onOpenCareer: workplaceId
+        ? () => {
+            this.activeDialogueModal?.destroy();
+            this.activeDialogueModal = null;
+            this.openCareerModal(workplaceId);
+          }
+        : undefined,
     });
 
     this.activeDialogueModal.show();
+  }
+
+  private openCareerModal(workplaceId?: string): void {
+    if (this.activeCareerModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeCareerModal = new CareerModal({
+      workplaceId,
+      onClose: () => {
+        this.activeCareerModal = null;
+        void playerSessionManager.saveSession();
+      },
+      onSessionChanged: () => {
+        this.explorationUI?.refreshHUD();
+        void playerSessionManager.saveSession();
+      },
+    });
+
+    this.activeCareerModal.show();
+  }
+
+  private openShopModal(shop: ShopDefinition): void {
+    if (this.activeShopModal || this.activeDialogueModal || this.activeBankModal || this.activeArenaModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeShopModal = new ShopModal({
+      shop,
+      onClose: () => {
+        this.activeShopModal = null;
+        void playerSessionManager.saveSession();
+      },
+      onTransactionComplete: () => {
+        this.explorationUI?.refreshHUD();
+      },
+    });
+
+    this.activeShopModal.show();
+  }
+
+  private openBankModal(): void {
+    if (this.activeBankModal || this.activeShopModal || this.activeDialogueModal || this.activeArenaModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeBankModal = new BankModal({
+      onClose: () => {
+        this.activeBankModal = null;
+        void playerSessionManager.saveSession();
+      },
+      onTransactionComplete: () => {
+        this.explorationUI?.refreshHUD();
+        void playerSessionManager.saveSession();
+      },
+    });
+
+    this.activeBankModal.show();
+  }
+
+  private openArenaModal(): void {
+    if (this.activeArenaModal || this.activeBankModal || this.activeShopModal || this.activeDialogueModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeArenaModal = new ArenaModal({
+      onClose: () => {
+        this.activeArenaModal = null;
+      },
+      onMatchComplete: () => {
+        void playerSessionManager.saveSession();
+      },
+    });
+
+    this.activeArenaModal.show();
   }
 
   // ── Zone entry with optional risk warning ─────────────────────
@@ -388,9 +555,10 @@ export class VillageScene extends Phaser.Scene {
       return;
     }
 
+    const player = playerSessionManager.getPlayer();
     const displayName = zoneName ?? huntingZone.name;
     const check = checkZoneAccess(
-      PLAYER_TEST_LEVEL,
+      player.level,
       huntingZone.averageMonsterLevel,
       displayName,
       huntingZone.recommendedMinLevel,
@@ -414,9 +582,13 @@ export class VillageScene extends Phaser.Scene {
   private doTransition(targetMapId: string, entryPosition: { x: number; y: number }): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.interactionGuard.setLocked(true);
     this.player.setVelocity(0, 0);
 
-    this.cameras.main.fade(300, 10, 10, 15, false, (_camera: unknown, progress: number) => {
+    // Save on scene exit
+    void playerSessionManager.saveSession();
+
+    this.cameras.main.fade(250, 10, 10, 15, false, (_camera: unknown, progress: number) => {
       if (progress === 1) {
         this.scene.start('HuntingScene', { spawnPosition: entryPosition, zoneId: targetMapId });
       }
@@ -424,8 +596,18 @@ export class VillageScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    this.explorationUI?.destroy();
+    this.explorationUI = null;
     this.zoneWarningModal.destroy();
     this.activeDialogueModal?.destroy();
     this.activeDialogueModal = null;
+    this.activeShopModal?.destroy();
+    this.activeShopModal = null;
+    this.activeBankModal?.destroy();
+    this.activeBankModal = null;
+    this.activeArenaModal?.destroy();
+    this.activeArenaModal = null;
+    this.activeCareerModal?.destroy();
+    this.activeCareerModal = null;
   }
 }

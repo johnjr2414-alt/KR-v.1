@@ -86,6 +86,18 @@ export class CurrencyService {
     return this.gold >= Math.floor(amount);
   }
 
+  /**
+   * Sets the gold balance directly (used when loading a saved session).
+   */
+  setGold(amount: number): void {
+    const validAmount = typeof amount === 'number' && Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+    const delta = validAmount - this.gold;
+    this.gold = validAmount;
+    if (delta !== 0) {
+      this.notifyListeners(delta);
+    }
+  }
+
   private notifyListeners(delta: number): void {
     for (const listener of this.listeners) {
       listener(this.gold, delta);

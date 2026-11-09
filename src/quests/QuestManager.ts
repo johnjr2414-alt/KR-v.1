@@ -1,11 +1,13 @@
 import {
   QuestStatus,
   QuestType,
+  type NpcQuestStatus,
   type PlayerQuestRecord,
+  type QuestChainProgress,
   type QuestDefinition,
   type QuestRewards,
 } from './QuestTypes';
-import { getQuestDefinition } from './QuestRegistry';
+import { getQuestChain, getQuestDefinition, getQuestsForNpc } from './QuestRegistry';
 import { InventoryManager, inventoryManager } from '../inventory/InventoryManager';
 import { RewardCalculator, rewardCalculator } from '../combat/rewards/RewardCalculator';
 import type { MonsterDefeatedEvent } from '../combat/rewards/RewardTypes';
@@ -61,6 +63,19 @@ export class QuestManager {
    */
   getAllQuests(): PlayerQuestRecord[] {
     return Array.from(this.activeQuests.values());
+  }
+
+  /**
+   * Replaces internal quest records with loaded quest records.
+   */
+  loadQuests(records: PlayerQuestRecord[]): void {
+    this.activeQuests.clear();
+    for (const record of records) {
+      this.activeQuests.set(record.questId, {
+        ...record,
+        objectives: record.objectives.map((o) => ({ ...o })),
+      });
+    }
   }
 
   /**
@@ -248,36 +263,80 @@ export class QuestManager {
   }
 
   /**
-   * Determines an NPC's status for the player:
-   * 'ready-turn-in' | 'available' | 'in-progress' | 'none'
+   * Resolves the single most relevant quest for an NPC, plus the interaction
+   * state, using every quest the NPC is registered to give (not a hardcoded
+   * list). Priority: ready-to-turn-in > in-progress > available > none.
    */
-  getNpcQuestStatus(npcId: string, playerLevel = 1): 'ready-turn-in' | 'available' | 'in-progress' | 'none' {
-    const defs = Object.values(getQuestDefinition ? [getQuestDefinition('quest-slime-hunter'), getQuestDefinition('quest-slime-sample')] : []).filter(
-      (q): q is QuestDefinition => q !== undefined && q.giverNpcId === npcId,
-    );
+  resolveNpcQuest(
+    npcId: string,
+    playerLevel = 1,
+  ): { status: NpcQuestStatus; questId?: string } {
+    let readyTurnIn: QuestDefinition | undefined;
+    let inProgress: QuestDefinition | undefined;
+    let available: QuestDefinition | undefined;
 
-    let hasAvailable = false;
-    let hasInProgress = false;
-
-    for (const q of defs) {
-      const rec = this.activeQuests.get(q.id);
-      if (rec) {
-        if (rec.status === QuestStatus.ReadyToTurnIn) {
-          return 'ready-turn-in';
+    for (const quest of getQuestsForNpc(npcId)) {
+      const record = this.activeQuests.get(quest.id);
+      if (record) {
+        if (record.status === QuestStatus.ReadyToTurnIn) {
+          readyTurnIn ??= quest;
+        } else if (record.status === QuestStatus.InProgress) {
+          inProgress ??= quest;
         }
-        if (rec.status === QuestStatus.InProgress) {
-          hasInProgress = true;
-        }
-      } else {
-        if (this.canAcceptQuest(q.id, playerLevel).canAccept) {
-          hasAvailable = true;
-        }
+      } else if (this.canAcceptQuest(quest.id, playerLevel).canAccept) {
+        available ??= quest;
       }
     }
 
-    if (hasInProgress) return 'in-progress';
-    if (hasAvailable) return 'available';
-    return 'none';
+    if (readyTurnIn) return { status: 'ready-turn-in', questId: readyTurnIn.id };
+    if (inProgress) return { status: 'in-progress', questId: inProgress.id };
+    if (available) return { status: 'available', questId: available.id };
+    return { status: 'none' };
+  }
+
+  /**
+   * Determines an NPC's status for the player:
+   * 'ready-turn-in' | 'available' | 'in-progress' | 'none'
+   */
+  getNpcQuestStatus(npcId: string, playerLevel = 1): NpcQuestStatus {
+    return this.resolveNpcQuest(npcId, playerLevel).status;
+  }
+
+  /**
+   * Reports the player's progress through an ordered story chain, including
+   * the next quest to tackle and whether it can be accepted right now.
+   */
+  getChainProgress(chainId: string, playerLevel = 1): QuestChainProgress {
+    const quests = getQuestChain(chainId);
+    let completedCount = 0;
+    let nextQuestId: string | null = null;
+    let nextAcceptable = false;
+    let reason = '';
+
+    for (const quest of quests) {
+      const record = this.activeQuests.get(quest.id);
+      if (record && record.status === QuestStatus.Completed) {
+        completedCount += 1;
+        continue;
+      }
+      if (nextQuestId === null) {
+        nextQuestId = quest.id;
+        const check = this.canAcceptQuest(quest.id, playerLevel);
+        // An already-accepted (in-progress) quest is acceptable to continue.
+        nextAcceptable = check.canAccept || record !== undefined;
+        reason = nextAcceptable ? '' : check.reason ?? '';
+      }
+    }
+
+    return {
+      chainId,
+      quests,
+      nextQuestId,
+      nextAcceptable,
+      reason,
+      completedCount,
+      totalCount: quests.length,
+    };
   }
 }
 

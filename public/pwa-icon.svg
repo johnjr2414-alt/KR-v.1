@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Knowledge Realms">
+  <rect width="512" height="512" rx="96" fill="#1a1a2e"/>
+  <rect x="24" y="24" width="464" height="464" rx="76" fill="none" stroke="#c9a227" stroke-width="8"/>
+  <path d="M96 168h128c18 0 32 14 32 32v176c0-18-14-32-32-32H96z" fill="#f4e4b0"/>
+  <path d="M416 168H288c-18 0-32 14-32 32v176c0-18 14-32 32-32h128z" fill="#e8d59a"/>
+  <path d="M96 168h128c18 0 32 14 32 32v176c-20-14-44-20-72-20H96z" fill="#fff7d6" opacity=".65"/>
+  <path d="M240 200h32v96l-16-14-16 14z" fill="#60a5fa"/>
+  <path d="M400 96l10 26 26 10-26 10-10 26-10-26-26-10 26-10z" fill="#f9d77e"/>
+</svg>

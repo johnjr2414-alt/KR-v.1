@@ -3,3 +3,4 @@ export * from './NPCRegistry';
 export * from './QuestTypes';
 export * from './QuestRegistry';
 export * from './QuestManager';
+export * from './DialogueResolver';

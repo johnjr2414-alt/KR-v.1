@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 import type { MonsterDefinition } from '../core/types/monster';
-import { createPlayerData, type PlayerData } from '../player/PlayerData';
+import { type PlayerData, playerSessionManager, createPlayerData } from '../player';
 import { BattleSession } from '../combat/BattleSession';
-import { QuestionRepository } from '../questions/retrieval/QuestionRepository';
-import { loadBundledQuestions } from '../questions/retrieval/QuestionLoader';
+import { sharedQuestionRepository } from '../questions';
 import { BattleOverlay } from '../ui/battle-overlay/BattleOverlay';
 import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
-import { inventoryManager } from '../inventory/InventoryManager';
+import { formatCombatFeedback, type CombatFeedbackDescriptor } from '../combat/CombatFeedbackMapper';
+import { audioManager } from '../audio';
+import { prefersReducedMotion } from '../ui/motion';
 import '../ui/battle-overlay/battle-overlay.css';
 import '../ui/question-modal/question-modal.css';
 import '../ui/inventory-panel/inventory-panel.css';
@@ -37,20 +38,34 @@ export class BattleScene extends Phaser.Scene {
 
   private playerVisual!: Phaser.GameObjects.Graphics;
   private monsterVisual!: Phaser.GameObjects.Graphics;
+  private rewardsProcessed = false;
 
   constructor() {
     super({ key: BattleScene.KEY });
   }
 
   init(data: BattleSceneInitData): void {
+    this.rewardsProcessed = false;
     this.monster = data.monster;
-    this.player = data.player || createPlayerData('player-1', 'Novice Hero');
+    if (playerSessionManager.isInitialized()) {
+      this.player = playerSessionManager.getPlayer();
+    } else if (data.player) {
+      this.player = data.player;
+    } else {
+      this.player = createPlayerData('player-1', 'Novice Hero');
+    }
+
     if (data.returnSceneKey) this.returnSceneKey = data.returnSceneKey;
     if (data.returnPosition) this.returnPosition = { ...data.returnPosition };
   }
 
   create(): void {
     const { width, height } = this.scale;
+
+    this.cameras.main.fadeIn(250, 0, 0, 0);
+
+    // Play intense combat BGM
+    audioManager.playMusic('bgm-combat');
 
     // Arena background
     const bg = this.add.graphics();
@@ -64,15 +79,13 @@ export class BattleScene extends Phaser.Scene {
     // Render placeholder combatants
     this.createCombatantVisuals(width, height);
 
-    // Setup question repository with bundled questions
-    const bundled = loadBundledQuestions();
-    const repo = new QuestionRepository(bundled.questions);
-
-    // Initialize headless BattleSession
+    // Initialize headless BattleSession using effective shared question repository and active player session
     this.session = new BattleSession({
       player: this.player,
       monster: this.monster,
-      repository: repo,
+      repository: sharedQuestionRepository,
+      masteryManager: playerSessionManager.mastery,
+      skillManager: playerSessionManager.skills,
     });
 
     // Create DOM Battle HUD overlay
@@ -145,11 +158,15 @@ export class BattleScene extends Phaser.Scene {
         const turnResult = this.session.processAnswer(evaluation);
         this.overlay.update();
 
-        // Animate combat hit
+        // Animate combat hit with authoritative feedback
+        const showDamageNumbers = playerSessionManager.getSettings().showDamageNumbers;
+        const feedback = formatCombatFeedback(turnResult, showDamageNumbers);
+        audioManager.playSfx(feedback.soundCue);
+
         if (turnResult.outcome === AnswerOutcome.Correct) {
-          this.animatePlayerAttack(turnResult.damageToMonster, turnResult.isCritical);
+          this.animatePlayerAttack(feedback);
         } else {
-          this.animateMonsterAttack(turnResult.damageToPlayer);
+          this.animateMonsterAttack(feedback);
         }
       },
       onClose: () => {
@@ -167,55 +184,122 @@ export class BattleScene extends Phaser.Scene {
     this.activeQuestionModal.show();
   }
 
-  private animatePlayerAttack(damage: number, isCritical: boolean): void {
-    this.tweens.add({
-      targets: this.playerVisual,
-      x: '+=30',
-      duration: 100,
-      yoyo: true,
-      ease: 'Power2',
-    });
+  private animatePlayerAttack(feedback: CombatFeedbackDescriptor): void {
+    const { width, height } = this.scale;
+    const monsterX = width / 2 + 140;
+    const monsterY = height / 2 + 20;
 
-    this.tweens.add({
-      targets: this.monsterVisual,
-      alpha: 0.3,
-      duration: 80,
-      yoyo: true,
-      repeat: 2,
-    });
+    if (!prefersReducedMotion()) {
+      this.tweens.add({
+        targets: this.playerVisual,
+        x: '+=30',
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+      });
 
-    const critText = isCritical ? ' CRIT!' : '';
-    this.overlay.showLogMessage(`⚔️ Player deals ${damage} damage!${critText}`);
+      this.tweens.add({
+        targets: this.monsterVisual,
+        alpha: 0.3,
+        duration: 80,
+        yoyo: true,
+        repeat: 2,
+      });
+    }
+
+    this.spawnFloatingText(monsterX, monsterY, feedback.displayText, feedback.isCritical ? '#ef4444' : '#fbbf24', feedback.isCritical);
+    this.overlay.showLogMessage(`⚔️ Player deals ${feedback.damageAmount} damage!`, feedback);
   }
 
-  private animateMonsterAttack(damage: number): void {
-    this.tweens.add({
-      targets: this.monsterVisual,
-      x: '-=30',
-      duration: 100,
-      yoyo: true,
-      ease: 'Power2',
-    });
+  private animateMonsterAttack(feedback: CombatFeedbackDescriptor): void {
+    const { width, height } = this.scale;
+    const playerX = width / 2 - 140;
+    const playerY = height / 2 + 20;
+
+    if (!prefersReducedMotion()) {
+      this.tweens.add({
+        targets: this.monsterVisual,
+        x: '-=30',
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+      });
+
+      this.tweens.add({
+        targets: this.playerVisual,
+        alpha: 0.3,
+        duration: 80,
+        yoyo: true,
+        repeat: 2,
+      });
+    }
+
+    this.spawnFloatingText(playerX, playerY, feedback.displayText, '#f87171', false);
+    this.overlay.showLogMessage(`💥 Monster retaliates for ${feedback.damageAmount} damage!`, feedback);
+  }
+
+  private spawnFloatingText(x: number, y: number, text: string, color: string, isCritical = false): void {
+    const fontSize = isCritical ? '24px' : '18px';
+    const floating = this.add.text(x, y, text, {
+      fontFamily: 'Arial',
+      fontSize,
+      fontStyle: isCritical ? 'bold' : 'normal',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5);
 
     this.tweens.add({
-      targets: this.playerVisual,
-      alpha: 0.3,
-      duration: 80,
-      yoyo: true,
-      repeat: 2,
+      targets: floating,
+      y: y - 45,
+      alpha: 0,
+      duration: 900,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        floating.destroy();
+      },
     });
-
-    this.overlay.showLogMessage(`💥 Monster retaliates for ${damage} damage!`);
   }
 
   private finishBattle(): void {
     const summary = this.session.getEndSummary();
 
-    // Automatically deposit victory drops into inventory
-    if (summary.droppedItems && summary.droppedItems.length > 0) {
-      for (const drop of summary.droppedItems) {
-        inventoryManager.addItem(drop.itemId, drop.quantity);
+    // Idempotent reward processing guard: process exactly once
+    if (!this.rewardsProcessed) {
+      this.rewardsProcessed = true;
+
+      // Sync remaining HP & MP to active player
+      this.player.currentHp = summary.remainingPlayerHp;
+      this.player.currentMp = summary.remainingPlayerMp;
+
+      if (summary.monsterDefeated) {
+        // 1. Award combat EXP via ProgressionService
+        if (summary.expEarned > 0) {
+          playerSessionManager.progression.awardExp(this.player, summary.expEarned);
+        }
+
+        // 2. Award Gold via CurrencyService
+        if (summary.goldEarned > 0) {
+          playerSessionManager.currency.addGold(summary.goldEarned);
+        }
+
+        // 3. Deposit victory item drops into active inventory
+        if (summary.droppedItems && summary.droppedItems.length > 0) {
+          for (const drop of summary.droppedItems) {
+            playerSessionManager.inventory.addItem(drop.itemId, drop.quantity);
+          }
+        }
+      } else if (summary.playerDefeated) {
+        // Player defeated: Defeat handling & respawn preparation
+        // Fully restore player HP on defeat/respawn (configured default respawn rule)
+        this.player.currentHp = this.player.maxHp;
+        // Point return scene to Beginners Village plaza
+        this.returnSceneKey = 'VillageScene';
+        this.returnPosition = { x: 600, y: 550 };
       }
+
+      // Auto-save session upon battle resolution
+      void playerSessionManager.saveSession();
     }
 
     this.overlay.showEndSummary(summary);
@@ -226,8 +310,15 @@ export class BattleScene extends Phaser.Scene {
     this.activeQuestionModal = null;
     this.overlay?.destroy();
 
-    this.scene.start(this.returnSceneKey, {
-      spawnPosition: this.returnPosition,
+    // Auto-save before transitioning out of battle
+    void playerSessionManager.saveSession();
+
+    this.cameras.main.fade(250, 0, 0, 0, false, (_camera: unknown, progress: number) => {
+      if (progress === 1) {
+        this.scene.start(this.returnSceneKey, {
+          spawnPosition: this.returnPosition,
+        });
+      }
     });
   }
 

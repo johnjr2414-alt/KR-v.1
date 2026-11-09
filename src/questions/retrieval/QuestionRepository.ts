@@ -1,4 +1,4 @@
-import type { Question } from '../../core/types/question';
+import type { ContentReviewStatus, Question } from '../../core/types/question';
 import { QuestionStatus, QuestionType } from '../../core/types/question';
 import type { EducationalTier, SubjectId } from '../../core/types/education';
 
@@ -25,6 +25,29 @@ export interface QuestionFilterCriteria {
   tags?: string[];
   /** Filter by specific topic. */
   topic?: string;
+  /**
+   * Filter by one or more raw topic strings (question must match at least
+   * one). Used to map a single taxonomy topic — which may be reached through
+   * several stored topic strings — onto the underlying records.
+   */
+  topics?: string[];
+  /**
+   * Filter by authoring review marker. Omitting `reviewStatus` does not
+   * filter. A record with no recorded status only matches when the caller
+   * explicitly asks for `Unreviewed` semantics through their own handling.
+   */
+  reviewStatus?: ContentReviewStatus;
+  /**
+   * Filter by profession tags (OR logic — the question must carry at least one).
+   * Phase 27.4: used to prioritise profession-relevant questions. Omitted by
+   * legacy callers, so existing behaviour is unchanged.
+   */
+  professionTags?: string[];
+  /**
+   * Filter by specialty tags (OR logic — the question must carry at least one).
+   * Phase 27.4. Omitted by legacy callers, so existing behaviour is unchanged.
+   */
+  specialtyTags?: string[];
 }
 
 /**
@@ -129,10 +152,34 @@ export class QuestionRepository {
       // Topic
       if (criteria.topic !== undefined && q.topic !== criteria.topic) return false;
 
+      // Topics (OR logic — question topic must be one of the listed strings)
+      if (criteria.topics !== undefined && criteria.topics.length > 0) {
+        if (!criteria.topics.includes(q.topic)) return false;
+      }
+
+      // Review status (exact match on the recorded marker)
+      if (criteria.reviewStatus !== undefined && q.reviewStatus !== criteria.reviewStatus) {
+        return false;
+      }
+
       // Tags (OR logic — question must have at least one matching tag)
       if (criteria.tags !== undefined && criteria.tags.length > 0) {
         const questionTags = q.tags ?? [];
         const hasMatch = criteria.tags.some((tag) => questionTags.includes(tag));
+        if (!hasMatch) return false;
+      }
+
+      // Profession tags (OR logic — Phase 27.4)
+      if (criteria.professionTags !== undefined && criteria.professionTags.length > 0) {
+        const professionTags = q.professionTags ?? [];
+        const hasMatch = criteria.professionTags.some((tag) => professionTags.includes(tag));
+        if (!hasMatch) return false;
+      }
+
+      // Specialty tags (OR logic — Phase 27.4)
+      if (criteria.specialtyTags !== undefined && criteria.specialtyTags.length > 0) {
+        const specialtyTags = q.specialtyTags ?? [];
+        const hasMatch = criteria.specialtyTags.some((tag) => specialtyTags.includes(tag));
         if (!hasMatch) return false;
       }
 
