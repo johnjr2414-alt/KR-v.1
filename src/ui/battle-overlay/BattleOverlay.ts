@@ -2,6 +2,7 @@ import type { BattleSession } from '../../combat/BattleSession';
 import type { BattleEndSummary } from '../../combat/BattleState';
 import { BattleStatus } from '../../combat/BattleState';
 import { calculateHpPercentage, type CombatFeedbackDescriptor } from '../../combat/CombatFeedbackMapper';
+import { formatUiNumber, formatUiString, UI_STRINGS } from '../strings';
 
 export interface BattleOverlayOptions {
   session: BattleSession;
@@ -34,28 +35,28 @@ export class BattleOverlay {
       <div class="battle-hud">
         <div class="battle-hud__card">
           <div class="battle-hud__name">
-            <span>⚔️ ${this.escape(state.player.name)}</span>
-            <span class="battle-hud__level">Lv. ${state.player.level}</span>
+            <span>${formatUiString(UI_STRINGS.battle.playerName, { name: this.escape(state.player.name) })}</span>
+            <span class="battle-hud__level">${formatUiString(UI_STRINGS.battle.level, { level: state.player.level })}</span>
           </div>
           <div class="battle-hud__hp-bar-bg">
             <div class="battle-hud__hp-bar" id="player-hp-bar" style="width: ${(state.playerCurrentHp / state.playerMaxHp) * 100}%"></div>
           </div>
-          <div class="battle-hud__hp-text" id="player-hp-text">${state.playerCurrentHp} / ${state.playerMaxHp} HP</div>
+          <div class="battle-hud__hp-text" id="player-hp-text">${formatUiString(UI_STRINGS.battle.hp, { current: formatUiNumber(state.playerCurrentHp), max: formatUiNumber(state.playerMaxHp) })}</div>
         </div>
 
         <div class="battle-hud__round-info" id="battle-round-info">
-          Question ${state.currentQuestionIndex + 1} of ${state.totalQuestionCount}
+          ${formatUiString(UI_STRINGS.battle.questionProgress, { current: state.currentQuestionIndex + 1, total: state.totalQuestionCount })}
         </div>
 
         <div class="battle-hud__card">
           <div class="battle-hud__name">
-            <span>👾 ${this.escape(state.monster.name)}</span>
-            <span class="battle-hud__level">Lv. ${state.monster.level}</span>
+            <span>${formatUiString(UI_STRINGS.battle.monsterName, { name: this.escape(state.monster.name) })}</span>
+            <span class="battle-hud__level">${formatUiString(UI_STRINGS.battle.level, { level: state.monster.level })}</span>
           </div>
           <div class="battle-hud__hp-bar-bg">
             <div class="battle-hud__hp-bar battle-hud__hp-bar--monster" id="monster-hp-bar" style="width: ${(state.monsterCurrentHp / state.monsterMaxHp) * 100}%"></div>
           </div>
-          <div class="battle-hud__hp-text" id="monster-hp-text">${state.monsterCurrentHp} / ${state.monsterMaxHp} HP</div>
+          <div class="battle-hud__hp-text" id="monster-hp-text">${formatUiString(UI_STRINGS.battle.hp, { current: formatUiNumber(state.monsterCurrentHp), max: formatUiNumber(state.monsterMaxHp) })}</div>
         </div>
       </div>
 
@@ -80,16 +81,25 @@ export class BattleOverlay {
       playerBar.style.width = `${calculateHpPercentage(state.playerCurrentHp, state.playerMaxHp)}%`;
     }
     if (playerText) {
-      playerText.textContent = `${state.playerCurrentHp} / ${state.playerMaxHp} HP`;
+      playerText.textContent = formatUiString(UI_STRINGS.battle.hp, {
+        current: formatUiNumber(state.playerCurrentHp),
+        max: formatUiNumber(state.playerMaxHp),
+      });
     }
     if (monsterBar) {
       monsterBar.style.width = `${calculateHpPercentage(state.monsterCurrentHp, state.monsterMaxHp)}%`;
     }
     if (monsterText) {
-      monsterText.textContent = `${state.monsterCurrentHp} / ${state.monsterMaxHp} HP`;
+      monsterText.textContent = formatUiString(UI_STRINGS.battle.hp, {
+        current: formatUiNumber(state.monsterCurrentHp),
+        max: formatUiNumber(state.monsterMaxHp),
+      });
     }
     if (roundInfo) {
-      roundInfo.textContent = `Question ${Math.min(state.totalQuestionCount, state.currentQuestionIndex + 1)} of ${state.totalQuestionCount}`;
+      roundInfo.textContent = formatUiString(UI_STRINGS.battle.questionProgress, {
+        current: Math.min(state.totalQuestionCount, state.currentQuestionIndex + 1),
+        total: state.totalQuestionCount,
+      });
     }
   }
 
@@ -115,37 +125,37 @@ export class BattleOverlay {
     modal.id = 'battle-summary-modal';
 
     let titleClass = 'battle-summary-modal__title--defeat';
-    let titleText = 'Defeat...';
+    let titleText: string = UI_STRINGS.battle.defeat;
 
     if (summary.monsterDefeated) {
       titleClass = 'battle-summary-modal__title--victory';
-      titleText = '🏆 Victory!';
+      titleText = UI_STRINGS.battle.victory;
     } else if (this.session.getState().status === BattleStatus.MonsterEscaped) {
       titleClass = 'battle-summary-modal__title--escape';
-      titleText = '💨 Monster Escaped!';
+      titleText = UI_STRINGS.battle.monsterEscaped;
     }
 
     modal.innerHTML = `
       <div class="battle-summary-modal__card">
         <div class="${titleClass}">${titleText}</div>
         <div class="battle-summary-modal__stats">
-          <div>Questions Answered: <strong>${summary.turnsPlayed} / ${summary.totalQuestions}</strong></div>
-          <div>Correct Answers: <strong>${summary.correctAnswers}</strong></div>
-          <div>Incorrect Answers: <strong>${summary.incorrectAnswers}</strong></div>
-          ${summary.expEarned > 0 ? `<div>Combat EXP: <strong>+${summary.expEarned}</strong></div>` : ''}
-          ${summary.goldEarned > 0 ? `<div>Gold: <strong>+${summary.goldEarned}</strong></div>` : ''}
+          <div>${UI_STRINGS.battle.questionsAnswered}: <strong>${formatUiNumber(summary.turnsPlayed)} / ${formatUiNumber(summary.totalQuestions)}</strong></div>
+          <div>${UI_STRINGS.battle.correctAnswers}: <strong>${formatUiNumber(summary.correctAnswers)}</strong></div>
+          <div>${UI_STRINGS.battle.incorrectAnswers}: <strong>${formatUiNumber(summary.incorrectAnswers)}</strong></div>
+          ${summary.expEarned > 0 ? `<div>${UI_STRINGS.battle.combatExp}: <strong>+${formatUiNumber(summary.expEarned)}</strong></div>` : ''}
+          ${summary.goldEarned > 0 ? `<div>${UI_STRINGS.battle.gold}: <strong>+${formatUiNumber(summary.goldEarned)}</strong></div>` : ''}
           ${
             summary.droppedItems && summary.droppedItems.length > 0
-              ? `<div>Items Dropped: <strong>${summary.droppedItems.map((d) => `${d.itemId} x${d.quantity}`).join(', ')}</strong></div>`
+              ? `<div>${UI_STRINGS.battle.itemsDropped}: <strong>${summary.droppedItems.map((d) => `${d.itemId} x${formatUiNumber(d.quantity)}`).join(', ')}</strong></div>`
               : ''
           }
           ${
             summary.masteryGains && summary.masteryGains.length > 0
-              ? `<div>Mastery Gains: <strong>${summary.masteryGains.map((g) => `+${g.expGained} ${g.subject}${g.leveledUp ? ` (Lv UP -> ${g.newLevel}!)` : ''}`).join(', ')}</strong></div>`
+              ? `<div>${UI_STRINGS.battle.masteryGains}: <strong>${summary.masteryGains.map((g) => `+${formatUiNumber(g.expGained)} ${g.subject}${g.leveledUp ? ` (Lv UP -> ${g.newLevel}!)` : ''}`).join(', ')}</strong></div>`
               : ''
           }
         </div>
-        <button class="battle-summary-modal__btn" id="summary-ok-btn">Return</button>
+        <button class="battle-summary-modal__btn" id="summary-ok-btn" type="button">${UI_STRINGS.battle.returnToMenu}</button>
       </div>
     `;
 

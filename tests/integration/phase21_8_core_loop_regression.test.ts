@@ -180,7 +180,7 @@ describe('Phase 21.8 — End-to-End Core Loop Regression Suite', () => {
       isCorrect: true,
       correctAnswerText: '10',
       submittedAnswer: '10',
-    });
+    }, false);
     expect(t1.outcome).toBe(AnswerOutcome.Correct);
     expect(t1.damageToMonster).toBeGreaterThan(0);
 
@@ -191,7 +191,7 @@ describe('Phase 21.8 — End-to-End Core Loop Regression Suite', () => {
       isCorrect: false,
       correctAnswerText: '10',
       submittedAnswer: '',
-    });
+    }, false);
     expect(t2.outcome).toBe(AnswerOutcome.Timeout);
     expect(t2.damageToPlayer).toBeGreaterThan(0);
 
@@ -202,7 +202,7 @@ describe('Phase 21.8 — End-to-End Core Loop Regression Suite', () => {
       isCorrect: true,
       correctAnswerText: '10',
       submittedAnswer: '10',
-    });
+    }, false);
     expect(battle.getState().status).toBe(BattleStatus.Victory);
     expect(battle.isBattleOver()).toBe(true);
 

@@ -44,7 +44,7 @@ const VALID_ID_QUESTION: Question = {
   type: QuestionType.Identification,
   question: 'What is the chemical symbol for Iron?',
   correctAnswer: 'Fe',
-  acceptedAnswers: ['fe', 'FE'],
+  acceptedAnswers: ['iron', 'ferrum'],
   timeLimit: 15,
   baseMasteryExp: 30,
   status: QuestionStatus.Published,
@@ -279,12 +279,16 @@ describe('QuestionValidator — Common Fields', () => {
     expect(res.errors.some((e) => e.field === 'question')).toBe(true);
   });
 
-  it('rejects non-positive time limits', () => {
+  it('rejects non-positive, non-integer, and unbounded time limits', () => {
     const zeroTime = { ...VALID_MC_QUESTION, timeLimit: 0 };
     const negTime = { ...VALID_MC_QUESTION, timeLimit: -10 };
+    const fractional = { ...VALID_MC_QUESTION, timeLimit: 15.5 };
+    const unbounded = { ...VALID_MC_QUESTION, timeLimit: 601 };
 
     expect(QuestionValidator.validate(zeroTime).isValid).toBe(false);
     expect(QuestionValidator.validate(negTime).isValid).toBe(false);
+    expect(QuestionValidator.validate(fractional).isValid).toBe(false);
+    expect(QuestionValidator.validate(unbounded).isValid).toBe(false);
   });
 
   it('rejects non-positive base mastery EXP', () => {

@@ -26,6 +26,22 @@ export const SHOP_REGISTRY: Record<string, ShopDefinition> = {
       { itemId: 'minor-mana-potion', buyPrice: 12 },
     ],
   },
+
+  // ── Golden Capital (Phase 26.4) — reuses the existing shop system; provisional ──
+  'capital-grand-bazaar': {
+    id: 'capital-grand-bazaar',
+    name: 'Grand Bazaar of the Capital',
+    merchantNpcId: 'merchant-cordelia',
+    sellPriceMultiplier: 0.55,
+    catalog: [
+      { itemId: 'iron-blade', buyPrice: 120 },
+      { itemId: 'leather-vest', buyPrice: 110 },
+      { itemId: 'scholars-hood', buyPrice: 180 },
+      { itemId: 'amulet-of-logic', buyPrice: 200 },
+      { itemId: 'minor-health-potion', buyPrice: 20 },
+      { itemId: 'minor-mana-potion', buyPrice: 22 },
+    ],
+  },
 };
 
 export function getShopDefinition(id: string): ShopDefinition | undefined {

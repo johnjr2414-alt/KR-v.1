@@ -30,6 +30,7 @@ export class QuestionModal {
   private container: HTMLDivElement | null = null;
   private readonly options: QuestionModalOptions;
   private timer: QuestionTimer | null = null;
+  private closeTimer: number | null = null;
   private isSubmitted = false;
   private evaluationResult: AnswerEvaluationResult | null = null;
 
@@ -93,6 +94,10 @@ export class QuestionModal {
     if (this.timer) {
       this.timer.stop();
       this.timer = null;
+    }
+    if (this.closeTimer !== null) {
+      clearTimeout(this.closeTimer);
+      this.closeTimer = null;
     }
     if (this.container) {
       this.container.remove();
@@ -302,7 +307,8 @@ export class QuestionModal {
 
   private handlePostFeedback(): void {
     if (this.options.autoCloseDelayMs !== undefined && this.options.autoCloseDelayMs > 0) {
-      window.setTimeout(() => {
+      this.closeTimer = window.setTimeout(() => {
+        this.closeTimer = null;
         this.destroy();
         this.options.onClose?.();
       }, this.options.autoCloseDelayMs);

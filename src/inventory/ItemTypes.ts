@@ -9,6 +9,8 @@ export enum ItemType {
   Consumable = 'consumable',
   Material = 'material',
   Quest = 'quest',
+  /** Gathering tool carried in the inventory (Phase 27.2). Not equippable. */
+  Tool = 'tool',
 }
 
 /**

@@ -1,27 +1,22 @@
 import Phaser from 'phaser';
 import { createGameConfig } from './config/gameConfig';
-import {
-  BootScene,
-  UserGameScene,
-  AdminDashboardScene,
-  VillageScene,
-  HuntingScene,
-  BattleScene,
-} from './scenes';
+import { BootScene } from './scenes/BootScene';
+import { applyTextScale, loadTextScale } from './ui/preferences/UiPreferences';
+import { registerServiceWorker } from './pwa/registerServiceWorker';
+import './ui/accessibility.css';
 
 /**
  * Application entry point.
  *
- * Registers all scenes and boots the Phaser engine.
- * BootScene runs first and presents the role-selection start menu.
+ * BootScene registers the gameplay and admin scenes on demand, keeping the
+ * initial start-menu bundle free of scene and overlay code.
  */
-const config = createGameConfig([
-  BootScene,
-  VillageScene,
-  HuntingScene,
-  BattleScene,
-  UserGameScene,
-  AdminDashboardScene,
-]);
+const config = createGameConfig([BootScene]);
+
+applyTextScale(loadTextScale());
 
 new Phaser.Game(config);
+
+if (import.meta.env.PROD) {
+  registerServiceWorker();
+}

@@ -1,6 +1,8 @@
 import type { NPCDefinition } from '../../quests/NPCTypes';
 import { QuestManager, questManager } from '../../quests/QuestManager';
 import { getQuestDefinition } from '../../quests/QuestRegistry';
+import { resolveNpcDialogue } from '../../quests/DialogueResolver';
+import { UI_STRINGS } from '../strings';
 
 export interface NPCDialogueModalOptions {
   npc: NPCDefinition;
@@ -8,6 +10,13 @@ export interface NPCDialogueModalOptions {
   playerLevel?: number;
   onClose?: () => void;
   onQuestUpdate?: () => void;
+  /**
+   * When set, an extra footer action opens the career interface for the
+   * workplace this NPC represents (Phase 27.6). Supplying it keeps NPC
+   * interaction flowing through this one dialogue modal — no duplicate NPC
+   * system — while still reaching the career UI.
+   */
+  onOpenCareer?: () => void;
 }
 
 /**
@@ -21,6 +30,7 @@ export class NPCDialogueModal {
   private readonly playerLevel: number;
   private readonly onClose?: () => void;
   private readonly onQuestUpdate?: () => void;
+  private readonly onOpenCareer?: () => void;
 
   constructor(options: NPCDialogueModalOptions) {
     this.npc = options.npc;
@@ -28,6 +38,7 @@ export class NPCDialogueModal {
     this.playerLevel = options.playerLevel ?? 1;
     this.onClose = options.onClose;
     this.onQuestUpdate = options.onQuestUpdate;
+    this.onOpenCareer = options.onOpenCareer;
   }
 
   show(): void {
@@ -37,21 +48,15 @@ export class NPCDialogueModal {
     container.className = 'npc-dialogue-modal';
     container.id = 'npc-dialogue-modal';
 
-    const questStatus = this.qm.getNpcQuestStatus(this.npc.id, this.playerLevel);
-    const offeredQuestId = this.npc.offeredQuestIds?.[0];
+    const resolution = resolveNpcDialogue(this.npc, this.qm, this.playerLevel);
+    const questStatus = resolution.state;
+    const offeredQuestId = resolution.questId;
     const questDef = offeredQuestId ? getQuestDefinition(offeredQuestId) : undefined;
     const questRecord = offeredQuestId ? this.qm.getQuestRecord(offeredQuestId) : undefined;
 
-    let dialogueLines = this.npc.dialogue.default;
-    if (questStatus === 'ready-turn-in' && this.npc.dialogue.questCompleted) {
-      dialogueLines = this.npc.dialogue.questCompleted;
-    } else if (questStatus === 'in-progress' && this.npc.dialogue.questInProgress) {
-      dialogueLines = this.npc.dialogue.questInProgress;
-    } else if (questStatus === 'available' && this.npc.dialogue.questAvailable) {
-      dialogueLines = this.npc.dialogue.questAvailable;
-    }
-
-    const dialogueText = dialogueLines.map((l) => `<p>${this.escape(l)}</p>`).join('');
+    const dialogueText = resolution.lines
+      .map((line) => `<p>${this.escape(line.text)}</p>`)
+      .join('');
 
     let questSnippet = '';
     if (questDef && (questStatus === 'available' || questStatus === 'in-progress' || questStatus === 'ready-turn-in')) {
@@ -99,7 +104,7 @@ export class NPCDialogueModal {
       if (questStatus === 'available') {
         const acceptBtn = document.createElement('button');
         acceptBtn.className = 'npc-btn npc-btn--primary';
-        acceptBtn.textContent = 'Accept Quest';
+        acceptBtn.textContent = UI_STRINGS.npcDialogue.acceptQuest;
         acceptBtn.addEventListener('click', () => {
           this.qm.acceptQuest(questDef.id, this.playerLevel);
           this.onQuestUpdate?.();
@@ -109,7 +114,7 @@ export class NPCDialogueModal {
       } else if (questStatus === 'ready-turn-in') {
         const turnInBtn = document.createElement('button');
         turnInBtn.className = 'npc-btn npc-btn--success';
-        turnInBtn.textContent = 'Complete Quest';
+        turnInBtn.textContent = UI_STRINGS.npcDialogue.completeQuest;
         turnInBtn.addEventListener('click', () => {
           this.qm.completeQuest(questDef.id);
           this.onQuestUpdate?.();
@@ -121,12 +126,21 @@ export class NPCDialogueModal {
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'npc-btn npc-btn--secondary';
-    closeBtn.textContent = 'Close';
+    closeBtn.textContent = UI_STRINGS.common.close;
     closeBtn.addEventListener('click', () => {
       this.destroy();
       this.onClose?.();
     });
     footerActions?.appendChild(closeBtn);
+
+    // Career interface entry point for workplace staff / career contacts.
+    if (footerActions && this.onOpenCareer) {
+      const careerBtn = document.createElement('button');
+      careerBtn.className = 'npc-btn npc-btn--career';
+      careerBtn.textContent = UI_STRINGS.npcDialogue.careerCenter;
+      careerBtn.addEventListener('click', () => this.onOpenCareer?.());
+      footerActions.appendChild(careerBtn);
+    }
 
     container.querySelector('#npc-close-btn')?.addEventListener('click', () => {
       this.destroy();

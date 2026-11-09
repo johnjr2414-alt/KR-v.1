@@ -13,6 +13,10 @@ export const BuildingIds = {
 
 /**
  * IDs for hunting zones accessible from the village buildings.
+ *
+ * Emerald Forest zones (Phase 26.2) are region content rather than village
+ * buildings, but they share this registry so the hunting-zone lookup stays a
+ * single source of truth.
  */
 export const HuntingZoneIds = {
   MathHuntingGround: 'math-hunting-ground',
@@ -20,6 +24,21 @@ export const HuntingZoneIds = {
   ScienceHuntingGround: 'science-hunting-ground',
   TechHuntingGround: 'tech-hunting-ground',
   GeneralHuntingGround: 'beginners-hunting-ground',
+  // ── Emerald Forest (Phase 26.2) ──
+  VerdantGlade: 'verdant-glade',
+  RunestoneGrove: 'runestone-grove',
+  // ── Ironhold Kingdom (Phase 26.3) ──
+  ForgeDistrict: 'forge-district',
+  SiegeWorks: 'siege-works',
+  // ── Golden Capital (Phase 26.4) ──
+  TradeBazaar: 'trade-bazaar',
+  CivicDistrict: 'civic-district',
+  // ── Arcane Technological City (Phase 26.5) ──
+  ManaFoundry: 'mana-foundry',
+  LogicSpire: 'logic-spire',
+  // ── Forgotten Lands (Phase 26.6) ──
+  AshenWastes: 'ashen-wastes',
+  RuinedArchive: 'ruined-archive',
 } as const;
 
 /**

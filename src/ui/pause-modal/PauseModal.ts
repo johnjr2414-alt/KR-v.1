@@ -1,4 +1,12 @@
 import { playerSessionManager } from '../../player';
+import {
+  applyTextScale,
+  loadTextScale,
+  saveTextScale,
+  TEXT_SCALE_OPTIONS,
+  textScaleLabel,
+} from '../preferences/UiPreferences';
+import { UI_STRINGS } from '../strings';
 import './pause-modal.css';
 
 export interface PauseModalOptions {
@@ -30,6 +38,9 @@ export class PauseModal {
     const container = document.createElement('div');
     container.className = 'pause-modal';
     container.id = 'pause-modal';
+    container.setAttribute('role', 'dialog');
+    container.setAttribute('aria-modal', 'true');
+    container.setAttribute('aria-labelledby', 'pause-title');
 
     document.body.appendChild(container);
     this.container = container;
@@ -41,111 +52,126 @@ export class PauseModal {
     if (!this.container) return;
 
     let contentHtml = '';
-    let title = '⏸️ Game Paused';
+    let title: string = UI_STRINGS.pause.titlePaused;
 
     if (this.currentView === 'menu') {
       contentHtml = `
         <div class="pause-card__menu-buttons">
           <button class="pause-menu-btn" id="pause-resume-btn" type="button">
-            ▶️ Resume Game
+            ${UI_STRINGS.pause.resume}
           </button>
           <button class="pause-menu-btn" id="pause-settings-btn" type="button">
-            ⚙️ Settings
+            ${UI_STRINGS.pause.settings}
           </button>
           <button class="pause-menu-btn" id="pause-controls-btn" type="button">
-            🎮 Controls & Shortcuts
+            ${UI_STRINGS.pause.controls}
           </button>
           <button class="pause-menu-btn pause-menu-btn--danger" id="pause-quit-btn" type="button">
-            🚪 Return to Start Menu
+            ${UI_STRINGS.pause.returnToStartMenu}
           </button>
         </div>
       `;
     } else if (this.currentView === 'settings') {
-      title = '⚙️ Game Settings';
+      title = UI_STRINGS.pause.settingsTitle;
       const settings = playerSessionManager.getSettings();
+      const textScale = loadTextScale();
+      const textScaleOptions = TEXT_SCALE_OPTIONS.map(
+        (scale) =>
+          `<option value="${scale}"${scale === textScale ? ' selected' : ''}>${this.escape(textScaleLabel(scale))}</option>`,
+      ).join('');
 
       contentHtml = `
         <div class="pause-settings-group">
           <!-- Master Volume -->
           <div class="pause-setting-row">
-            <div class="pause-setting-label">
-              <span>Master Volume</span>
+            <label class="pause-setting-label" for="master-vol-slider">
+              <span>${UI_STRINGS.pause.masterVolume}</span>
               <span class="pause-setting-val" id="master-vol-val">${Math.round(settings.masterVolume * 100)}%</span>
-            </div>
+            </label>
             <input class="pause-setting-slider" id="master-vol-slider" type="range" min="0" max="100" value="${Math.round(settings.masterVolume * 100)}" />
           </div>
 
           <!-- SFX Volume -->
           <div class="pause-setting-row">
-            <div class="pause-setting-label">
-              <span>Sound Effects (SFX)</span>
+            <label class="pause-setting-label" for="sfx-vol-slider">
+              <span>${UI_STRINGS.pause.sfxVolume}</span>
               <span class="pause-setting-val" id="sfx-vol-val">${Math.round(settings.sfxVolume * 100)}%</span>
-            </div>
+            </label>
             <input class="pause-setting-slider" id="sfx-vol-slider" type="range" min="0" max="100" value="${Math.round(settings.sfxVolume * 100)}" />
           </div>
 
           <!-- Music Volume -->
           <div class="pause-setting-row">
-            <div class="pause-setting-label">
-              <span>Music Volume</span>
+            <label class="pause-setting-label" for="music-vol-slider">
+              <span>${UI_STRINGS.pause.musicVolume}</span>
               <span class="pause-setting-val" id="music-vol-val">${Math.round(settings.musicVolume * 100)}%</span>
-            </div>
+            </label>
             <input class="pause-setting-slider" id="music-vol-slider" type="range" min="0" max="100" value="${Math.round(settings.musicVolume * 100)}" />
           </div>
 
           <!-- Show Damage Numbers -->
           <label class="pause-setting-checkbox">
             <input type="checkbox" id="show-damage-toggle" ${settings.showDamageNumbers ? 'checked' : ''} />
-            <span>Show Damage Numbers in Combat</span>
+            <span>${UI_STRINGS.pause.showDamageNumbers}</span>
           </label>
+
+          <!-- Text Size -->
+          <div class="pause-setting-row">
+            <label class="pause-setting-label" for="text-scale-select">
+              <span>${UI_STRINGS.pause.textSize}</span>
+            </label>
+            <select class="pause-setting-select" id="text-scale-select">
+              ${textScaleOptions}
+            </select>
+          </div>
         </div>
       `;
     } else if (this.currentView === 'controls') {
-      title = '🎮 Controls Guide';
+      title = UI_STRINGS.pause.controlsTitle;
       contentHtml = `
         <div class="pause-controls-list">
           <div class="pause-controls-row">
-            <span>Move Character:</span>
-            <span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>Arrows</kbd></span>
+            <span>${UI_STRINGS.pause.moveCharacter}</span>
+            <span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>Arrows</kbd></span>
           </div>
           <div class="pause-controls-row">
-            <span>Interact / Dialogue / Battle:</span>
-            <span><kbd>SPACE</kbd> or <kbd>ENTER</kbd></span>
+            <span>${UI_STRINGS.pause.interact}</span>
+            <span><kbd>SPACE</kbd> / <kbd>ENTER</kbd></span>
           </div>
           <div class="pause-controls-row">
-            <span>Inventory / Equipment:</span>
+            <span>${UI_STRINGS.pause.inventoryKeys}</span>
             <span><kbd>I</kbd></span>
           </div>
           <div class="pause-controls-row">
-            <span>Skill Trees & Hotbar:</span>
-            <span><kbd>K</kbd> (Phase 23.5)</span>
+            <span>${UI_STRINGS.pause.skillKeys}</span>
+            <span><kbd>K</kbd></span>
           </div>
           <div class="pause-controls-row">
-            <span>Subject Mastery:</span>
+            <span>${UI_STRINGS.pause.masteryKeys}</span>
             <span><kbd>M</kbd></span>
           </div>
           <div class="pause-controls-row">
-            <span>Quest Journal:</span>
-            <span><kbd>Q</kbd> (Phase 21.7)</span>
+            <span>${UI_STRINGS.pause.questKeys}</span>
+            <span><kbd>Q</kbd></span>
           </div>
           <div class="pause-controls-row">
-            <span>Pause / Settings:</span>
+            <span>${UI_STRINGS.pause.pauseKeys}</span>
             <span><kbd>ESC</kbd></span>
           </div>
         </div>
       `;
     } else if (this.currentView === 'confirmQuit') {
-      title = '⚠️ Confirm Exit';
+      title = UI_STRINGS.pause.confirmExitTitle;
       contentHtml = `
         <div class="pause-confirm-box">
-          <span>Are you sure you want to return to the start menu?</span>
-          <span>Your character, gold, inventory, and quest progress will be saved automatically.</span>
+          <span>${UI_STRINGS.pause.confirmExitQuestion}</span>
+          <span>${UI_STRINGS.pause.confirmExitDetail}</span>
           <div class="pause-confirm-actions">
             <button class="pause-menu-btn pause-menu-btn--danger" id="confirm-quit-btn" type="button">
-              Yes, Save & Exit
+              ${UI_STRINGS.pause.confirmSaveAndExit}
             </button>
             <button class="pause-menu-btn" id="cancel-quit-btn" type="button">
-              Cancel
+              ${UI_STRINGS.common.cancel}
             </button>
           </div>
         </div>
@@ -154,13 +180,13 @@ export class PauseModal {
 
     const backButtonHtml =
       this.currentView !== 'menu'
-        ? `<button class="pause-menu-btn" id="pause-back-btn" style="padding: 6px 14px; font-size: 11px;" type="button">← Back</button>`
+        ? `<button class="pause-menu-btn pause-back-btn" id="pause-back-btn" type="button">← ${UI_STRINGS.common.back}</button>`
         : '';
 
     this.container.innerHTML = `
       <div class="pause-card">
         <div class="pause-card__header">
-          <span class="pause-card__title">${this.escape(title)}</span>
+          <span class="pause-card__title" id="pause-title">${this.escape(title)}</span>
           ${backButtonHtml}
         </div>
         <div class="pause-card__content">
@@ -228,6 +254,13 @@ export class PauseModal {
       const damageToggle = this.container.querySelector<HTMLInputElement>('#show-damage-toggle');
       damageToggle?.addEventListener('change', () => {
         playerSessionManager.updateSettings({ showDamageNumbers: Boolean(damageToggle.checked) });
+      });
+
+      const textScaleSelect = this.container.querySelector<HTMLSelectElement>('#text-scale-select');
+      textScaleSelect?.addEventListener('change', () => {
+        const scale = Number(textScaleSelect.value);
+        applyTextScale(scale);
+        saveTextScale(scale);
       });
     } else if (this.currentView === 'confirmQuit') {
       this.container.querySelector('#confirm-quit-btn')?.addEventListener('click', async () => {

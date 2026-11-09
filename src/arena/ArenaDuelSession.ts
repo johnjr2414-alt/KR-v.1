@@ -5,6 +5,7 @@ import type { Question } from '../core/types/question';
 import type { QuestionRepository } from '../questions/retrieval/QuestionRepository';
 import { sharedQuestionRepository } from '../questions';
 import { SubjectId } from '../core/types/education';
+import { createUniqueId } from '../core/uniqueId';
 
 export interface ArenaSessionOptions {
   player: ArenaCompetitor;
@@ -55,7 +56,7 @@ export class ArenaDuelSession {
     this.rivalProfile = rProfile;
 
     this.matchDef = {
-      matchId: crypto.randomUUID(),
+      matchId: createUniqueId(),
       mode: options.mode || MatchModeEnum.PracticeSparring,
       status: ArenaMatchStatus.InProgress,
       competitors: [options.player, options.rival],

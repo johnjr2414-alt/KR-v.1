@@ -1,5 +1,6 @@
 import { playerSessionManager } from '../../player';
 import { getRequiredExpForNextLevel } from '../../config/expConfig';
+import { formatUiNumber, formatUiString, UI_STRINGS } from '../strings';
 import './exploration-hud.css';
 
 export interface ExplorationHUDOptions {
@@ -69,54 +70,54 @@ export class ExplorationHUD {
       <div class="exploration-hud__card">
         <div class="exploration-hud__header">
           <span class="exploration-hud__name">⚔️ ${this.escape(player.name)}</span>
-          <span class="exploration-hud__level">Lv. ${player.level}</span>
+          <span class="exploration-hud__level">${formatUiString(UI_STRINGS.hud.level, { level: player.level })}</span>
         </div>
 
         <div class="exploration-hud__bar-group">
           <!-- HP Bar -->
-          <div class="exploration-hud__bar-wrapper" title="Health Points">
+          <div class="exploration-hud__bar-wrapper" title="${UI_STRINGS.hud.health}">
             <div class="exploration-hud__bar exploration-hud__bar--hp" id="hud-hp-bar" style="width: ${hpPercent}%"></div>
             <div class="exploration-hud__bar-label">
-              <span>HP</span>
-              <span id="hud-hp-text">${player.currentHp} / ${player.maxHp}</span>
+              <span>${UI_STRINGS.hud.hp}</span>
+              <span id="hud-hp-text">${formatUiString(UI_STRINGS.battle.hp, { current: formatUiNumber(player.currentHp), max: formatUiNumber(player.maxHp) })}</span>
             </div>
           </div>
 
           <!-- MP Bar -->
-          <div class="exploration-hud__bar-wrapper" title="Mana Points">
+          <div class="exploration-hud__bar-wrapper" title="${UI_STRINGS.hud.mana}">
             <div class="exploration-hud__bar exploration-hud__bar--mp" id="hud-mp-bar" style="width: ${mpPercent}%"></div>
             <div class="exploration-hud__bar-label">
-              <span>MP</span>
-              <span id="hud-mp-text">${player.currentMp} / ${player.maxMp}</span>
+              <span>${UI_STRINGS.hud.mp}</span>
+              <span id="hud-mp-text">${formatUiString(UI_STRINGS.battle.hp, { current: formatUiNumber(player.currentMp), max: formatUiNumber(player.maxMp) })}</span>
             </div>
           </div>
 
           <!-- EXP Bar -->
-          <div class="exploration-hud__bar-wrapper" title="Character Experience Progress">
+          <div class="exploration-hud__bar-wrapper" title="${UI_STRINGS.hud.experience}">
             <div class="exploration-hud__bar exploration-hud__bar--exp" id="hud-exp-bar" style="width: ${expPercent}%"></div>
             <div class="exploration-hud__bar-label">
-              <span>EXP</span>
-              <span id="hud-exp-text">${player.currentExp} / ${nextLevelExp > 0 ? nextLevelExp : 'MAX'}</span>
+              <span>${UI_STRINGS.hud.exp}</span>
+              <span id="hud-exp-text">${formatUiString(UI_STRINGS.battle.hp, { current: formatUiNumber(player.currentExp), max: nextLevelExp > 0 ? formatUiNumber(nextLevelExp) : UI_STRINGS.hud.max })}</span>
             </div>
           </div>
         </div>
 
         <div class="exploration-hud__footer">
           <div class="exploration-hud__gold" id="hud-gold-text">
-            🪙 <span>${gold} G</span>
+            🪙 <span>${formatUiString(UI_STRINGS.hud.gold, { amount: formatUiNumber(gold) })}</span>
           </div>
           <div class="exploration-hud__buttons">
             <button class="exploration-hud__btn" id="hud-inv-btn" type="button">
-              🎒 Bag <span class="exploration-hud__btn-key">I</span>
+              🎒 ${UI_STRINGS.hud.bag} <span class="exploration-hud__btn-key">I</span>
             </button>
             <button class="exploration-hud__btn" id="hud-skills-btn" type="button">
-              ⚡ Skills <span class="exploration-hud__btn-key">K</span>
+              ⚡ ${UI_STRINGS.hud.skills} <span class="exploration-hud__btn-key">K</span>
             </button>
             <button class="exploration-hud__btn" id="hud-mastery-btn" type="button">
-              📖 Mastery <span class="exploration-hud__btn-key">M</span>
+              📖 ${UI_STRINGS.hud.mastery} <span class="exploration-hud__btn-key">M</span>
             </button>
             <button class="exploration-hud__btn" id="hud-quest-btn" type="button">
-              📜 Quests <span class="exploration-hud__btn-key">Q</span>
+              📜 ${UI_STRINGS.hud.quests} <span class="exploration-hud__btn-key">Q</span>
             </button>
           </div>
         </div>
@@ -156,7 +157,9 @@ export class ExplorationHUD {
   private updateGoldDisplay(): void {
     const goldTextEl = this.container?.querySelector('#hud-gold-text span');
     if (goldTextEl) {
-      goldTextEl.textContent = `${playerSessionManager.currency.getGold()} G`;
+      goldTextEl.textContent = formatUiString(UI_STRINGS.hud.gold, {
+        amount: formatUiNumber(playerSessionManager.currency.getGold()),
+      });
     }
   }
 

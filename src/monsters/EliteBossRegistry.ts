@@ -150,6 +150,56 @@ export const ELITE_BOSS_REGISTRY: Record<string, EliteEncounterDefinition> = {
       },
     ],
   },
+
+  // ─── Colosseum Grand Champion (Phase 26.7) ───────────────────────────────────
+  'grand-champion-ragnar': {
+    id: 'grand-champion-ragnar',
+    name: 'Grand Champion Ragnar',
+    level: 70,
+    maxHp: 2600,
+    attack: 240,
+    defense: 130,
+    subject: SubjectId.Mathematics,
+    category: MonsterCategory.Boss,
+    baseExp: 1500,
+    baseGold: 600,
+    dropConfig: {
+      drops: [
+        { itemId: 'rare-crystal', dropChance: 1.0, minQuantity: 2, maxQuantity: 4 },
+        { itemId: 'amulet-of-logic', dropChance: 0.5, minQuantity: 1, maxQuantity: 1 },
+        { itemId: 'scholars-hood', dropChance: 0.4, minQuantity: 1, maxQuantity: 1 },
+      ],
+      bonusGoldMin: 40,
+      bonusGoldMax: 80,
+    },
+    spriteColor: 0xf59e0b, // champion gold
+    detectionRadius: 140,
+    isElite: false,
+    isBoss: true,
+    firstClearBonus: {
+      gold: 400,
+      exp: 800,
+      itemId: 'amulet-of-logic',
+    },
+    respawnCooldownMs: 600000, // 10 minutes
+    phases: [
+      {
+        phaseNumber: 1,
+        name: 'Champion’s Poise',
+        hpThresholdPercent: 100,
+        attackMultiplier: 1.0,
+        defenseMultiplier: 1.0,
+      },
+      {
+        phaseNumber: 2,
+        name: 'Undefeated Fury',
+        hpThresholdPercent: 50,
+        attackMultiplier: 1.4,
+        defenseMultiplier: 1.2,
+        phaseEnrageMessage: 'Grand Champion Ragnar rises undefeated! Attack increased by 40%!',
+      },
+    ],
+  },
 };
 
 /**

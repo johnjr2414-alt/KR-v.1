@@ -11,6 +11,7 @@ import { ExplorationUIManager } from '../ui/exploration-hud';
 import { ShopModal } from '../ui/shop-modal';
 import { BankModal } from '../ui/bank-modal';
 import { ArenaModal } from '../ui/arena-modal';
+import { CareerModal } from '../ui/career-modal';
 import type { ShopDefinition } from '../economy/ShopTypes';
 import { getShopForMerchant } from '../economy/ShopRegistry';
 import { getNPCsForMap } from '../quests/NPCRegistry';
@@ -67,6 +68,7 @@ export class VillageScene extends Phaser.Scene {
   private activeShopModal: ShopModal | null = null;
   private activeBankModal: BankModal | null = null;
   private activeArenaModal: ArenaModal | null = null;
+  private activeCareerModal: CareerModal | null = null;
   private npcs: NPCDefinition[] = [];
   private explorationUI: ExplorationUIManager | null = null;
   private currentDirection: Direction = 'down';
@@ -172,7 +174,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.activeShopModal || this.explorationUI?.isPanelOpen()) {
+    if (this.isTransitioning || !this.player?.body || this.activeDialogueModal || this.activeShopModal || this.activeCareerModal || this.explorationUI?.isPanelOpen()) {
       if (this.player?.anims && this.player.anims.isPlaying && this.player.anims.currentAnim?.key.includes('walk')) {
         this.player.play(`player-idle-${this.currentDirection}`, true);
       }
@@ -248,15 +250,19 @@ export class VillageScene extends Phaser.Scene {
     if (nearest && !this.nearbyBuilding) {
       const shopDef = getShopForMerchant(nearest.id);
       let promptTitle = 'Talk';
+      let icon = '💬';
 
       if (shopDef) {
         promptTitle = 'Trade / Shop';
+        icon = '🏪';
+      } else if (nearest.workplaceId) {
+        promptTitle = 'Visit Workplace';
+        icon = '🎓';
       } else {
         const questStatus = playerSessionManager.quests.getNpcQuestStatus(nearest.id, playerLevel);
         promptTitle = questStatus === 'ready-turn-in' ? 'Turn in Quest' : questStatus === 'available' ? 'Accept Quest' : 'Talk';
       }
 
-      const icon = shopDef ? '🏪' : '💬';
       this.interactPrompt
         .setText(`${icon} ${nearest.name}\n[SPACE / ENTER] ${promptTitle}`)
         .setPosition(this.player.x - 60, this.player.y - 80)
@@ -383,7 +389,7 @@ export class VillageScene extends Phaser.Scene {
 
   // ── Interaction handler ────────────────────────────────────────
   private attemptInteract(): void {
-    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.activeArenaModal || this.explorationUI?.isPanelOpen()) return;
+    if (this.isTransitioning || this.activeDialogueModal || this.activeShopModal || this.activeBankModal || this.activeArenaModal || this.activeCareerModal || this.explorationUI?.isPanelOpen()) return;
     if (!this.interactionGuard.canTrigger()) return;
 
     // Prioritize NPC interaction if close to an NPC
@@ -399,7 +405,16 @@ export class VillageScene extends Phaser.Scene {
       const shop = getShopForMerchant(this.nearbyNPC.id);
       if (shop) {
         this.openShopModal(shop);
+      } else if (
+        this.nearbyNPC.workplaceId &&
+        (this.nearbyNPC.offeredQuestIds?.length ?? 0) === 0
+      ) {
+        // Pure workplace staff / career contact — open the career interface.
+        this.openCareerModal(this.nearbyNPC.workplaceId);
       } else {
+        // Everyone else (including career NPCs that also give quests) uses the
+        // existing dialogue system; career contacts add a career-interface
+        // button there, so no duplicate NPC interaction system is created.
         this.openNPCDialogue(this.nearbyNPC);
       }
       return;
@@ -422,6 +437,7 @@ export class VillageScene extends Phaser.Scene {
 
     this.player.setVelocity(0, 0);
     const player = playerSessionManager.getPlayer();
+    const workplaceId = npc.workplaceId;
 
     this.activeDialogueModal = new NPCDialogueModal({
       npc,
@@ -435,9 +451,38 @@ export class VillageScene extends Phaser.Scene {
         void playerSessionManager.saveSession();
         // Refresh scene NPC icons if needed
       },
+      // Career contacts (workplace staff) expose the career interface without a
+      // separate NPC system: the dialogue modal closes and the career UI opens.
+      onOpenCareer: workplaceId
+        ? () => {
+            this.activeDialogueModal?.destroy();
+            this.activeDialogueModal = null;
+            this.openCareerModal(workplaceId);
+          }
+        : undefined,
     });
 
     this.activeDialogueModal.show();
+  }
+
+  private openCareerModal(workplaceId?: string): void {
+    if (this.activeCareerModal) return;
+
+    this.player.setVelocity(0, 0);
+
+    this.activeCareerModal = new CareerModal({
+      workplaceId,
+      onClose: () => {
+        this.activeCareerModal = null;
+        void playerSessionManager.saveSession();
+      },
+      onSessionChanged: () => {
+        this.explorationUI?.refreshHUD();
+        void playerSessionManager.saveSession();
+      },
+    });
+
+    this.activeCareerModal.show();
   }
 
   private openShopModal(shop: ShopDefinition): void {
@@ -562,5 +607,7 @@ export class VillageScene extends Phaser.Scene {
     this.activeBankModal = null;
     this.activeArenaModal?.destroy();
     this.activeArenaModal = null;
+    this.activeCareerModal?.destroy();
+    this.activeCareerModal = null;
   }
 }

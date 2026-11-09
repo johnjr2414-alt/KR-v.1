@@ -1,0 +1,975 @@
+# PHASE 27 — REAL-WORLD PROFESSIONS AND CAREERS
+
+Implement a reusable, configurable Real-World Professions & Career System.
+
+Players should be able to choose real-world careers, visit profession-specific workplaces, perform professional activities, answer profession-related questions, complete assignments, earn rewards, and advance through their careers.
+
+This is a framework phase, not a content dump.
+
+The goal is to create a system that can support many different professions using the same underlying architecture.
+
+Examples include:
+- Doctor
+- Nurse
+- Pharmacist
+- Electrical Engineer
+- Civil Engineer
+- Mechanical Engineer
+- Computer Engineer
+- Software Engineer
+- Architect
+- Teacher
+- Professor
+- Scientist
+- Accountant
+- Banker
+- Lawyer
+- Entrepreneur
+
+A profession must not simply be a character label or a different question category. It must provide meaningful gameplay activities, responsibilities, workplaces, assignments, and progression.
+
+## GLOBAL DEVELOPMENT RULES
+
+Before implementing any sub-phase:
+
+1. Inspect the existing project structure and development documentation.
+2. Inspect the existing systems relevant to the current task.
+3. Identify reusable components before creating new ones.
+4. Follow the existing architecture, naming conventions, and data structures.
+5. Avoid duplicating existing systems.
+6. Do not rewrite working systems unnecessarily.
+7. Do not redesign unrelated game features.
+8. Keep profession rules and business logic headless and independent of Phaser.
+9. Use configurable data definitions following existing project conventions.
+10. Keep presentation, scene interactions, and visual components in the appropriate UI and Phaser layers.
+
+### Existing systems that must be preserved
+
+Integrate with the existing:
+- Character progression
+- Educational tier system
+- Question Management System
+- Question retrieval and difficulty engine
+- Subject Mastery System
+- Quest System
+- NPC and dialogue system
+- World, building, and region systems
+- Inventory System
+- Economy and Currency System
+- PlayerSessionManager
+- Storage and save/load system
+
+Do not create a second question engine, reward engine, mastery system, currency system, or save system.
+
+### Architectural principle
+
+Use a shared profession framework with configurable profession-specific behavior.
+
+A Doctor, Electrical Engineer, Architect, Miner, or other profession should use common career infrastructure while having different workplaces, activities, assignments, and knowledge requirements.
+
+Profession-specific behavior should be configured wherever possible rather than hardcoded into the general engine.
+
+---
+
+# PHASE 27.1 — PROFESSION FRAMEWORK, CATEGORIES, AND ENROLLMENT
+
+Inspect the player session, storage/save schema, education tiers, subject mastery, currency, quest, and NPC/world registries before writing code.
+
+Build the headless profession domain, for example:
+
+`src/professions/`
+
+### Profession categories
+
+Create configurable profession categories, including examples such as:
+
+- Healthcare
+- Engineering and Technology
+- Architecture and Construction
+- Education and Science
+- Business and Finance
+- Law
+
+Categories must be configurable rather than hardcoded limitations.
+
+### Profession definitions
+
+Support profession definitions containing:
+
+- Unique ID
+- Name
+- Category
+- Description
+- Responsibilities
+- Associated workplaces
+- Enrollment requirements
+- Rank definitions
+- EXP progression settings
+- Question and subject tags
+- Optional specialization definitions for future expansion
+
+New professions must be addable through configuration without changing core logic.
+
+### Career progression structure
+
+Create configurable rank ladders per profession.
+
+Example Doctor ranks:
+
+1. Medical Trainee
+2. Junior Doctor
+3. General Practitioner
+4. Senior Doctor
+5. Medical Specialist
+6. Chief Physician
+
+These ranks represent game progression, not real-world licenses or qualifications.
+
+### Enrollment requirements
+
+Support optional configurable requirements:
+
+- Character level
+- Subject mastery
+- Gold
+- Prerequisite quests
+- Other configurable conditions
+
+Do not require every condition for every profession.
+
+### Career profile
+
+A player may pursue multiple professions.
+
+Each enrolled profession must independently track:
+
+- Profession ID
+- Profession level
+- Profession EXP
+- Current rank
+- Reputation
+- Enrollment status
+- Assignment history
+
+Prevent duplicate enrollment in the same profession.
+
+### Validation
+
+Validate:
+- Profession definitions
+- Unique IDs
+- Profession categories
+- Rank definitions
+- Rank thresholds
+- Enrollment requirements
+- Missing references
+
+Handle missing or invalid definitions safely.
+
+### Initial profession definitions
+
+Fully define:
+
+1. Doctor
+2. Electrical Engineer
+3. Architect
+
+Other professions may be added as definitions without requiring their full gameplay implementation.
+
+### Persistence
+
+Introduce career data as an optional, backward-compatible field in the existing SaveData structure.
+
+Integrate it with PlayerSessionManager.
+
+Existing saves must remain loadable through safe defaults or documented migration.
+
+Do not create a separate profession save system.
+
+### Testing
+
+Add tests for:
+- Profession definitions and validation
+- Enrollment
+- Multiple professions per player
+- Duplicate enrollment prevention
+- Enrollment requirement validation
+- Invalid and missing definitions
+- Backward-compatible save loading
+- Career data persistence
+
+Create:
+
+`docs/PHASE_27_1_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27.2 — WORKPLACE, FACILITY, AND WORLD INTEGRATION
+
+Inspect existing world definitions, including buildings, maps, regions, NPC registries, dialogue, and interaction patterns.
+
+Implement a configurable workplace system that connects professions to locations in the game world.
+
+### Workplace definitions
+
+Support:
+- Unique workplace ID
+- Name
+- Description
+- Associated professions
+- Facilities
+- NPC associations
+- Interaction points
+- Entry requirements
+- Facility access requirements
+
+Multiple professions may share one workplace.
+
+### Workplace examples
+
+Hospital:
+- Reception
+- Examination Room
+- Laboratory
+- Medical Office
+
+Engineering Center:
+- Design Office
+- Electronics Laboratory
+- Mechanical Workshop
+- Project Office
+
+Architecture Studio:
+- Design Room
+- Planning Office
+- Project Room
+
+School or University:
+- Classroom
+- Examination Room
+- Faculty Office
+- Research Room
+
+### Facility access
+
+Implement configurable access rules based on:
+- Profession enrollment
+- Profession rank
+- Character level, when required
+- Quest completion
+- Other configured requirements
+
+A player may enter a workplace without necessarily having access to every facility.
+
+Support facilities that unlock as a player progresses in a profession.
+
+### World integration
+
+Integrate workplaces with existing building and map definitions.
+
+Add a Career Center or Guild Hall building if an appropriate existing location is unavailable.
+
+Add at least one interactive NPC that introduces available professions and the enrollment system.
+
+Use existing NPC interaction patterns.
+
+Do not create an unrelated world navigation system or duplicate building registries.
+
+### Headless services
+
+Create a workplace registry and headless services for:
+- Workplace resolution
+- Workplace access validation
+- Facility access validation
+- Profession associations
+- Unlock requirements
+
+Keep visual interactions in the appropriate Phaser scenes and UI.
+
+### Testing
+
+Add tests for:
+- Workplace definitions
+- Profession associations
+- Multiple professions sharing a workplace
+- Entry requirements
+- Facility access
+- Rank-based unlocking
+- Invalid workplace references
+- Facility resolution
+
+Create:
+
+`docs/PHASE_27_2_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27.3 — PROFESSIONAL ASSIGNMENT ENGINE
+
+Inspect existing quest objectives, task progression, reward definitions, NPC interactions, and profession enrollment before implementing.
+
+Implement a reusable, configurable professional assignment framework.
+
+### Assignment types
+
+Support:
+
+1. Knowledge Assessment
+2. Problem Solving
+3. Case Analysis
+4. Project Completion
+5. Practical Simulation
+6. Research Assignment
+
+The framework must allow different professions to have different activities.
+
+Examples:
+
+Doctor:
+- Diagnose a fictional patient.
+- Review symptoms.
+- Interpret laboratory results.
+
+Electrical Engineer:
+- Troubleshoot a circuit.
+- Identify faulty components.
+- Calculate electrical values.
+
+Architect:
+- Calculate building dimensions.
+- Interpret floor plans.
+- Complete a design challenge.
+
+### Assignment definitions
+
+Support:
+- Unique ID
+- Title
+- Description
+- Profession association
+- Required rank
+- Difficulty
+- Task type
+- Required question topics
+- Required subjects
+- Educational tier
+- Objectives
+- Completion conditions
+- Configurable rewards
+- Repeatability settings, if required
+
+### Assignment engine
+
+Implement headless services for:
+
+- Assignment availability
+- Prerequisite validation
+- Assignment acceptance
+- Active assignment tracking
+- Objective progress
+- Assignment completion
+- Assignment failure
+- Completion result generation
+
+Support multi-stage assignments.
+
+Do not assume that every assignment consists only of answering questions.
+
+The assignment framework must support different objective types without hardcoding each profession into the general engine.
+
+### Reward handling
+
+Assignment definitions may specify:
+
+- Profession EXP
+- Character EXP
+- Subject Mastery EXP
+- Gold
+- Reputation
+
+At this stage, define and validate reward data and produce a completion result.
+
+Actual reward distribution must be handled through the existing progression, mastery, and currency services in Phase 27.5.
+
+Do not create a duplicate reward distribution system.
+
+### Duplicate reward prevention
+
+Prevent duplicate reward granting for the same assignment completion.
+
+Use stable assignment and completion identifiers.
+
+Support safe handling of repeated completion requests.
+
+### Assignment history
+
+Track:
+- Active assignments
+- Completed assignments
+- Failed assignments, where applicable
+- Completion timestamps or existing project-compatible records
+- Reward claim status
+- Assignment history
+
+Integrate assignment state with the career profile and existing persistence structure.
+
+### Initial sample content
+
+Add at least two sample assignments for each seed profession:
+
+- Doctor
+- Electrical Engineer
+- Architect
+
+Clearly label sample content.
+
+### Testing
+
+Add tests for:
+- Assignment availability
+- Rank requirements
+- Prerequisites
+- Acceptance
+- Multi-stage progress
+- Completion conditions
+- Failure conditions
+- Duplicate completion prevention
+- Reward result generation
+- Assignment persistence
+
+Create:
+
+`docs/PHASE_27_3_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27.4 — PROFESSION QUESTION INTEGRATION
+
+Inspect the existing question repository, selector, difficulty engine, taxonomy, and educational tier rules before implementing.
+
+Integrate professional assignments with the existing Question Management System.
+
+Do not create a separate question engine.
+
+### Question metadata
+
+Extend question metadata only when necessary.
+
+Possible optional fields:
+
+- Profession tags
+- Specialty tags
+- Task category
+- Professional topic tags
+
+All new fields must be backward-compatible.
+
+Existing questions must remain valid without professional metadata.
+
+### Question selection
+
+For an accepted assignment:
+
+1. Identify the profession.
+2. Identify the assignment.
+3. Identify the required subjects and topics.
+4. Determine the educational tier.
+5. Determine the difficulty.
+6. Retrieve matching questions from the existing question repository.
+7. Prioritize profession relevance.
+8. Return the selected questions to the assignment system.
+
+### Educational tier compatibility
+
+Respect the existing educational tier system:
+
+- Levels 1–10: Elementary
+- Levels 11–50: Junior High School
+- Levels 51–100: Senior High School
+- Levels 101–150: College
+- Levels 151–200: Master's
+- Levels 201–250: PhD
+- Levels 251+: Specialization
+
+The upper tiers remain configurable.
+
+Do not automatically serve advanced professional questions to beginner players.
+
+Use the existing educational tier and difficulty selection rules.
+
+Do not independently reinterpret or replace the existing PvE difficulty system.
+
+### Fallback strategy
+
+If suitable profession-specific questions are unavailable:
+
+- Use a configurable fallback strategy.
+- Prioritize relevant subject and topic matches.
+- Respect educational tier and difficulty restrictions.
+- Report missing professional question coverage.
+- Avoid silently returning unrelated questions.
+
+Keep question selection separate from answer evaluation.
+
+Reuse the existing answer evaluation and mastery reward pathways.
+
+### Initial question mappings
+
+Add a small, clearly labelled sample of profession-related question mappings for:
+
+- Doctor
+- Electrical Engineer
+- Architect
+
+### Testing
+
+Add tests for:
+- Profession-specific selection
+- Subject and topic matching
+- Tier compatibility
+- Difficulty handling
+- Fallback behavior
+- Missing-coverage reporting
+- Backward compatibility with existing questions
+- PvE retrieval regression
+
+Create:
+
+`docs/PHASE_27_4_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27.5 — PROFESSION EXPERIENCE, RANK, REPUTATION, AND REWARDS
+
+Inspect existing character progression, mastery, currency, reward distribution, and assignment completion pathways before implementing.
+
+Implement independent profession progression.
+
+### Profession EXP
+
+Create configurable EXP progression for each profession.
+
+Support:
+- Profession EXP requirements
+- Profession levels
+- Rank thresholds
+- Rank advancement
+- Unlock conditions
+
+### Rank progression
+
+Ranks may unlock:
+- Advanced assignments
+- New facilities
+- More difficult cases and projects
+- Higher rewards
+- Special professional activities
+- Career titles
+
+Rank definitions and thresholds must be configurable.
+
+### Reputation
+
+Implement reputation independently for each profession.
+
+Reputation may be earned through successful professional assignments.
+
+Keep reputation simple and configurable.
+
+Do not introduce severe penalties for incorrect answers.
+
+### Reward distribution
+
+When an assignment is successfully completed, route rewards through the existing services:
+
+- Profession EXP through the profession progression service.
+- Character EXP through the existing character progression system.
+- Subject Mastery EXP through the existing mastery system.
+- Gold through the existing currency service.
+- Reputation through the profession reputation service.
+
+Do not directly duplicate or bypass existing reward logic.
+
+### Reward safety
+
+Ensure:
+- Rewards are granted only once per valid completion.
+- Failed or incomplete assignments do not receive successful completion rewards.
+- Repeated completion requests cannot duplicate rewards.
+- Partial reward handling does not cause inconsistent player data.
+
+Use the existing session and persistence mechanisms.
+
+### Separation of progression systems
+
+Keep these three systems independent:
+
+1. Character Level
+2. Subject Mastery
+3. Profession Progression
+
+A high character level must not automatically increase profession rank.
+
+A high subject mastery level must not automatically increase profession rank.
+
+A high profession rank must not automatically grant subject mastery.
+
+Each system must maintain its own progression.
+
+### Future specializations
+
+Prepare the architecture for future specializations.
+
+Examples:
+
+Doctor:
+- Cardiology
+- Neurology
+- Pediatrics
+- Surgery
+
+Engineer:
+- Electrical
+- Electronics
+- Civil
+- Mechanical
+
+Architect:
+- Residential Design
+- Commercial Design
+- Landscape Architecture
+
+Do not fully implement specializations yet.
+
+### Testing
+
+Add tests for:
+- Profession EXP calculations
+- Rank progression
+- Unlock conditions
+- Reputation calculations
+- Reward integration
+- Duplicate reward prevention
+- Separation from character level
+- Separation from subject mastery
+- Persistence after progression
+
+Create:
+
+`docs/PHASE_27_5_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27.6 — CAREER UI, NPC, AND QUEST INTEGRATION
+
+Inspect existing UI components, dialogue, modals, journals, NPC interactions, and scene transition conventions before implementing.
+
+Create the career interfaces using existing UI patterns.
+
+### Career Selection Interface
+
+Support:
+- Browsing available professions
+- Profession categories
+- Profession descriptions
+- Responsibilities
+- Associated workplaces
+- Enrollment requirements
+- Enrollment actions
+- Enrollment validation feedback
+
+### Career Profile Interface
+
+Display:
+- Enrolled professions
+- Profession levels
+- EXP progress
+- Current rank
+- Reputation
+- Active assignments
+- Completed assignments
+- Assignment history
+
+### Workplace Interface
+
+Display:
+- Workplace information
+- Available facilities
+- NPC interactions
+- Facility access
+- Available professional assignments
+- Profession activities
+
+### Assignment Interface
+
+Display:
+- Assignment information
+- Objectives
+- Requirements
+- Progress
+- Profession-related questions
+- Success or failure
+- Rewards
+
+Reuse the existing question modal and assignment or quest UI components wherever possible.
+
+### NPC integration
+
+Integrate NPCs that:
+- Introduce professions.
+- Offer enrollment.
+- Provide professional assignments.
+- Provide assignment feedback.
+- Represent workplace staff and professional contacts.
+
+Use the existing NPC and dialogue systems.
+
+Do not create a duplicate NPC interaction system.
+
+### Quest integration
+
+Support career-related quests through the existing Quest System.
+
+Keep the distinction between:
+
+- General game quests
+- Career progression quests
+- Professional assignments
+
+They may share objective and reward infrastructure, but must retain their appropriate identities and progression rules.
+
+Avoid duplicate quest engines.
+
+### Persistence
+
+Extend PlayerSessionManager and existing storage integration to maintain:
+
+- Enrolled professions
+- Profession levels
+- EXP
+- Ranks
+- Reputation
+- Active assignments
+- Completed assignments
+- Assignment history
+- Other necessary career state
+
+Phase 27.1 should already establish the career save structure. Extend that structure rather than creating a second persistence implementation.
+
+Use safe defaults and migration for existing saves.
+
+### Testing
+
+Add tests for UI-facing service logic where practical.
+
+Complete manual runtime verification for:
+- Career selection
+- Enrollment
+- Workplace interactions
+- Facility access
+- Assignment interactions
+- Assignment completion
+- Career profile updates
+- Scene transitions
+- Save/load
+
+Create:
+
+`docs/PHASE_27_6_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27.7 — SEED PROFESSIONS END-TO-END AND EXTENSIBILITY VALIDATION
+
+Complete the initial gameplay validation using three fully working professions:
+
+1. Doctor
+2. Electrical Engineer
+3. Architect
+
+Each profession must have:
+
+- A profession definition
+- A workplace
+- At least one interactive NPC
+- Appropriate facilities
+- At least two example assignments
+- Profession-related questions
+- Different professional activities
+- Profession EXP and progression
+- Configurable rewards
+- Reputation progression
+- Save/load support
+- Career UI integration
+
+### Gameplay validation examples
+
+Doctor:
+- Visit the Hospital.
+- Receive a fictional patient case.
+- Review patient information.
+- Answer relevant medical questions.
+- Complete a diagnosis assignment.
+- Earn career rewards.
+
+Electrical Engineer:
+- Visit the Engineering Center.
+- Receive an electrical troubleshooting assignment.
+- Identify components or solve circuit problems.
+- Answer relevant engineering questions.
+- Complete the assignment.
+- Earn career rewards.
+
+Architect:
+- Visit the Architecture Studio.
+- Receive a building design assignment.
+- Calculate dimensions or review a floor plan.
+- Answer relevant architectural questions.
+- Complete the project.
+- Earn career rewards.
+
+These activities must use the same underlying profession framework while providing different gameplay experiences.
+
+### Extensibility validation
+
+Add one additional profession through configuration only.
+
+Do not modify the core profession engine to support it.
+
+Verify that the new profession can:
+- Be displayed.
+- Be enrolled in.
+- Access its configured workplace.
+- Receive assignments.
+- Retrieve suitable questions.
+- Earn profession EXP and rewards.
+- Save and restore progression.
+
+### Regression testing
+
+Run the full regression suite.
+
+Verify compatibility with:
+- Existing PvE
+- Question evaluation
+- Educational tiers
+- Subject mastery
+- Character progression
+- Quest System
+- NPC interactions
+- Inventory
+- Economy
+- PlayerSessionManager
+- Save/load
+
+Run:
+- TypeScript checks
+- Full automated test suite
+- Production build
+
+Perform manual gameplay verification.
+
+Fix regressions caused by Phase 27.
+
+Create:
+
+`docs/PHASE_27_7_IMPLEMENTATION_REPORT.md`
+
+Update the development roadmap accurately.
+
+Stop after this phase.
+
+---
+
+# PHASE 27 COMPLETION REQUIREMENTS
+
+Phase 27 is complete only when:
+
+1. The profession framework is reusable and configurable.
+2. Players can enroll in multiple professions.
+3. Professions have independent progression.
+4. Workplaces and facilities are integrated with the game world.
+5. Professional assignments support different activity types.
+6. Assignments retrieve relevant questions from the existing question system.
+7. Existing educational tier and difficulty rules remain respected.
+8. Rewards integrate with existing progression, mastery, and economy systems.
+9. Career information persists through the existing save/load system.
+10. The three seed professions work end-to-end.
+11. An additional profession can be added through configuration without engine changes.
+12. Existing game systems continue to pass regression tests.
+
+---
+
+# FUTURE ROADMAP COMPATIBILITY
+
+This Phase 27 replaces the previous Phase 27 gathering-profession implementation plan with the Real-World Professions & Careers direction.
+
+Do not silently delete the original gathering, crafting, or economic gameplay concepts from the overall game roadmap.
+
+Preserve them as possible future systems, including:
+
+- Mining
+- Farming
+- Woodcutting
+- Gathering
+- Blacksmithing
+- Alchemy
+- Crafting
+- Trading
+- Business management
+- Banking and investments
+- Property ownership and management
+
+Where appropriate, these activities may eventually use the same profession framework.
+
+For example:
+- Miner
+- Farmer
+- Woodcutter
+- Blacksmith
+- Alchemist
+- Merchant
+- Banker
+- Entrepreneur
+
+Do not automatically implement these activities in Phase 27 unless they are necessary for the three seed professions.
+
+Do not renumber or rewrite previously completed phases without a clear dependency reason.
+
+Inspect future roadmap phases and identify any dependencies affected by the new career system.
+
+If a future phase requires profession data, workplaces, career progression, or assignments, document the dependency and recommend the smallest necessary adjustment.
+
+Do not prematurely implement future-phase features.
+
+**FINAL DESIGN GOAL:**
+
+Knowledge Realms should allow players to pursue real-world careers within its fantasy world.
+
+Players should be able to choose professions, visit workplaces, perform meaningful professional responsibilities, apply educational knowledge, complete assignments, earn rewards, develop professional reputations, and advance through their careers.
+
+The system must remain modular, configurable, extensible, compatible with existing systems, and ready for future expansion.

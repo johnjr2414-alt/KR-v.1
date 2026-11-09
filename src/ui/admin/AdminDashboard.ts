@@ -1,8 +1,28 @@
 import type { Question, QuestionChoice } from '../../core/types/question';
-import { QuestionType, QuestionStatus } from '../../core/types/question';
+import { ContentReviewStatus, QuestionType, QuestionStatus } from '../../core/types/question';
 import { EducationalTier, SubjectId } from '../../core/types/education';
-import type { QuestionManager } from '../../questions/management/QuestionManager';
+import type {
+  QuestionBankImportPreview,
+  QuestionBackup,
+  QuestionManager,
+} from '../../questions/management/QuestionManager';
+import { QUESTION_BANK_FORMAT_VERSION } from '../../questions/management/QuestionBankTransfer';
+import { GAME_VERSION } from '../../constants';
 import type { QuestionFilterCriteria } from '../../questions/retrieval/QuestionRepository';
+import {
+  buildQuestionDraft,
+  validateQuestionDraft,
+  type QuestionDraftInput,
+} from '../../questions/management/QuestionDraft';
+import { buildQuestionPreview } from '../../questions/management/QuestionPreview';
+import {
+  TOPIC_TAXONOMY,
+  buildTaxonomyCoverageReport,
+  getSubjectDisplayName,
+  resolveRawTopicsForTopic,
+} from '../../questions/taxonomy';
+import { buildReviewReport, renderReviewReportJson } from '../../questions/review';
+import { ADMIN_LOCAL_SECURITY_WARNING } from '../../config/adminAccessConfig';
 
 type Panel = 'add' | 'list' | 'import-export';
 
@@ -28,6 +48,12 @@ export class AdminDashboard {
   private editingQuestion: Question | null = null;
   /** Current choice count for the MC form. */
   private choiceCount = 4;
+  /** Last filter criteria applied on the list panel (used for filtered export). */
+  private lastListCriteria: QuestionFilterCriteria = {};
+  /** Snapshot taken immediately before the most recent bulk import. */
+  private lastBackup: QuestionBackup | null = null;
+  /** Pending post-save panel switch, cleared when the dashboard is torn down. */
+  private panelSwitchTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(manager: QuestionManager, onExit: () => void) {
     this.manager = manager;
@@ -50,11 +76,18 @@ export class AdminDashboard {
     document.body.appendChild(container);
     this.container = container;
 
+    const banner = container.querySelector<HTMLElement>('.admin__security-banner');
+    if (banner) banner.textContent = `⚠️ ${ADMIN_LOCAL_SECURITY_WARNING}`;
+
     this.bindNavigation();
     this.switchPanel('list');
   }
 
   destroy(): void {
+    if (this.panelSwitchTimer !== null) {
+      clearTimeout(this.panelSwitchTimer);
+      this.panelSwitchTimer = null;
+    }
     if (this.container) {
       this.container.remove();
       this.container = null;
@@ -73,6 +106,7 @@ export class AdminDashboard {
         <button class="admin__nav-btn admin__nav-btn--exit" data-action="exit">🚪 Exit Admin</button>
       </nav>
       <main class="admin__content">
+        <div class="admin__security-banner" role="note"></div>
         <section id="panel-list" class="admin__panel"></section>
         <section id="panel-add" class="admin__panel"></section>
         <section id="panel-import-export" class="admin__panel"></section>
@@ -154,6 +188,10 @@ export class AdminDashboard {
       `<option value="${s}" ${q?.status === s ? 'selected' : ''}>${s}</option>`
     ).join('');
 
+    const reviewOptions = Object.values(ContentReviewStatus).map((r) =>
+      `<option value="${r}" ${q?.reviewStatus === r ? 'selected' : ''}>${r}</option>`
+    ).join('');
+
     panelEl.innerHTML = `
       <div class="admin-form">
         <h2 class="admin-form__title">${isEdit ? '✏️ Edit Question' : '➕ Add Question'}</h2>
@@ -217,6 +255,13 @@ export class AdminDashboard {
             <select class="admin-form__select" name="status">${statusOptions}</select>
           </div>
           <div class="admin-form__row">
+            <label class="admin-form__label">Review Status (authoring label, optional)</label>
+            <select class="admin-form__select" name="reviewStatus">
+              <option value="">(no review recorded)</option>
+              ${reviewOptions}
+            </select>
+          </div>
+          <div class="admin-form__row">
             <label class="admin-form__label">Tags (comma-separated)</label>
             <input class="admin-form__input" name="tags" value="${this.esc((q?.tags ?? []).join(', '))}" placeholder="e.g. grade-3, algebra" />
           </div>
@@ -224,9 +269,12 @@ export class AdminDashboard {
             <button type="submit" class="admin-form__btn admin-form__btn--primary">
               ${isEdit ? 'Save Changes' : 'Create Question'}
             </button>
+            <button type="button" class="admin-form__btn admin-form__btn--secondary" id="form-draft-btn">Save as Draft</button>
+            <button type="button" class="admin-form__btn admin-form__btn--secondary" id="form-preview-btn">👁️ Preview as Player</button>
             <button type="button" class="admin-form__btn admin-form__btn--secondary" id="form-cancel-btn">Cancel</button>
           </div>
         </form>
+        <div class="admin-form__preview" id="form-preview" hidden></div>
       </div>
     `;
 
@@ -288,6 +336,8 @@ export class AdminDashboard {
     const typeSelect = panelEl.querySelector('#question-type-select') as HTMLSelectElement;
     const addChoiceBtn = panelEl.querySelector('#add-choice-btn') as HTMLButtonElement;
     const cancelBtn = panelEl.querySelector('#form-cancel-btn') as HTMLButtonElement;
+    const draftBtn = panelEl.querySelector('#form-draft-btn') as HTMLButtonElement;
+    const previewBtn = panelEl.querySelector('#form-preview-btn') as HTMLButtonElement;
 
     typeSelect?.addEventListener('change', () => {
       this.renderChoicesForType(typeSelect.value as QuestionType);
@@ -302,61 +352,88 @@ export class AdminDashboard {
       this.switchPanel('list');
     });
 
+    draftBtn?.addEventListener('click', () => {
+      void this.handleFormSubmit(form, isEdit, { forceDraft: true });
+    });
+
+    previewBtn?.addEventListener('click', () => {
+      this.renderPreview(form);
+    });
+
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
       void this.handleFormSubmit(form, isEdit);
     });
   }
 
-  private async handleFormSubmit(form: HTMLFormElement, isEdit: boolean): Promise<void> {
+  /**
+   * Reads the current form state into a plain {@link QuestionDraftInput}.
+   * No DOM element is left out of this mapping, and no validation happens here.
+   */
+  private collectDraftInput(form: HTMLFormElement): QuestionDraftInput {
     const formData = new FormData(form);
-    const messagesEl = this.container?.querySelector('#form-messages');
-    if (messagesEl) messagesEl.innerHTML = '';
-
     const type = formData.get('type') as QuestionType;
 
-    const questionData: Partial<Question> = {
-      educationalTier: formData.get('educationalTier') as EducationalTier,
-      subject: formData.get('subject') as SubjectId,
-      topic: (formData.get('topic') as string)?.trim(),
-      difficulty: parseInt(formData.get('difficulty') as string, 10),
-      type,
-      question: (formData.get('question') as string)?.trim(),
-      timeLimit: parseInt(formData.get('timeLimit') as string, 10),
-      baseMasteryExp: parseInt(formData.get('baseMasteryExp') as string, 10),
-      status: formData.get('status') as QuestionStatus,
-      explanation: (formData.get('explanation') as string)?.trim() || undefined,
+    const input: QuestionDraftInput = {
+      educationalTier: (formData.get('educationalTier') as string) ?? '',
+      subject: (formData.get('subject') as string) ?? '',
+      topic: (formData.get('topic') as string) ?? '',
+      difficulty: (formData.get('difficulty') as string) ?? '',
+      type: type ?? '',
+      question: (formData.get('question') as string) ?? '',
+      timeLimit: (formData.get('timeLimit') as string) ?? '',
+      baseMasteryExp: (formData.get('baseMasteryExp') as string) ?? '',
+      status: (formData.get('status') as string) ?? '',
+      reviewStatus: (formData.get('reviewStatus') as string) ?? '',
+      explanation: (formData.get('explanation') as string) ?? '',
+      tags: (formData.get('tags') as string) ?? '',
     };
 
-    // Tags
-    const tagsRaw = (formData.get('tags') as string)?.trim();
-    if (tagsRaw) {
-      questionData.tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
-    }
-
-    // Type-specific fields
     if (type === QuestionType.MultipleChoice) {
       const choiceInputs = this.container?.querySelectorAll<HTMLInputElement>('[data-choice-id]') ?? [];
-      const choices: QuestionChoice[] = [];
-      choiceInputs.forEach((input) => {
-        const choiceId = input.dataset.choiceId!;
-        const text = input.value.trim();
-        if (text) {
-          choices.push({ choiceId, text });
-        }
+      const choices: Array<{ choiceId: string; text: string }> = [];
+      choiceInputs.forEach((el) => {
+        choices.push({ choiceId: el.dataset.choiceId ?? '', text: el.value });
       });
-      questionData.choices = choices;
+      input.choices = choices;
       const checkedRadio = this.container?.querySelector<HTMLInputElement>('input[name="correctChoice"]:checked');
-      questionData.correctAnswer = checkedRadio?.value;
+      input.correctChoiceId = checkedRadio?.value ?? '';
     } else if (type === QuestionType.Identification) {
-      questionData.correctAnswer = (formData.get('correctAnswer') as string)?.trim();
-      const acceptedRaw = (formData.get('acceptedAnswers') as string)?.trim();
-      if (acceptedRaw) {
-        questionData.acceptedAnswers = acceptedRaw.split(',').map((a) => a.trim()).filter(Boolean);
-      }
+      input.correctAnswer = (formData.get('correctAnswer') as string) ?? '';
+      input.acceptedAnswers = (formData.get('acceptedAnswers') as string) ?? '';
     } else if (type === QuestionType.Essay) {
-      questionData.expectedAnswer = (formData.get('expectedAnswer') as string)?.trim();
+      input.expectedAnswer = (formData.get('expectedAnswer') as string) ?? '';
     }
+
+    return input;
+  }
+
+  private async handleFormSubmit(
+    form: HTMLFormElement,
+    isEdit: boolean,
+    options: { forceDraft?: boolean } = {},
+  ): Promise<void> {
+    const messagesEl = this.container?.querySelector('#form-messages');
+    if (messagesEl) messagesEl.innerHTML = '';
+    this.clearFieldErrors();
+
+    const input = this.collectDraftInput(form);
+    if (options.forceDraft) {
+      input.status = QuestionStatus.Draft;
+    }
+
+    const validation = validateQuestionDraft(input);
+    if (!validation.isValid) {
+      // Never silently publish/submit invalid content — surface every error
+      // next to the offending field.
+      this.markFieldErrors(validation.byField);
+      this.showValidationErrors(
+        validation.errors.map((e) => `${e.field}: ${e.message}`),
+      );
+      return;
+    }
+
+    const questionData: Partial<Question> = validation.draft;
 
     try {
       if (isEdit && this.editingQuestion) {
@@ -372,13 +449,108 @@ export class AdminDashboard {
           this.showValidationErrors(result.errors.map((e) => `${e.field}: ${e.message}`));
           return;
         }
-        this.showSuccessMessage('Question created successfully.');
+        this.showSuccessMessage(
+          options.forceDraft ? 'Draft saved successfully.' : 'Question created successfully.',
+        );
       }
 
-      setTimeout(() => this.switchPanel('list'), 800);
+      if (this.panelSwitchTimer !== null) clearTimeout(this.panelSwitchTimer);
+      this.panelSwitchTimer = setTimeout(() => {
+        this.panelSwitchTimer = null;
+        this.switchPanel('list');
+      }, 800);
     } catch (err) {
       this.showValidationErrors([(err as Error).message]);
     }
+  }
+
+  /** Clears any previously-marked field errors. */
+  private clearFieldErrors(): void {
+    if (!this.container) return;
+    this.container.querySelectorAll('.admin-form__input--error').forEach((el) =>
+      el.classList.remove('admin-form__input--error'),
+    );
+    this.container.querySelectorAll('.admin-form__error-text').forEach((el) => el.remove());
+  }
+
+  /**
+   * Attaches validation messages directly beneath the offending form controls.
+   * Fields without a matching control (e.g. `id`, `createdAt`) are summarised.
+   */
+  private markFieldErrors(byField: Record<string, string[]>): void {
+    if (!this.container) return;
+    const form = this.container.querySelector('#question-form');
+    if (!form) return;
+
+    for (const [field, messages] of Object.entries(byField)) {
+      if (field === 'choices') {
+        const section = this.container.querySelector('#choices-section');
+        if (section) {
+          section.classList.add('admin-form__input--error');
+          const err = document.createElement('div');
+          err.className = 'admin-form__error-text';
+          err.textContent = messages.join(' ');
+          section.appendChild(err);
+        }
+        continue;
+      }
+
+      const control = form.querySelector(`[name="${field}"]`) as HTMLElement | null;
+      if (!control) continue;
+      control.classList.add('admin-form__input--error');
+      const err = document.createElement('div');
+      err.className = 'admin-form__error-text';
+      err.textContent = messages.join(' ');
+      control.insertAdjacentElement('afterend', err);
+    }
+  }
+
+  /** Renders a live player-view preview of the current draft below the form. */
+  private renderPreview(form: HTMLFormElement): void {
+    const previewEl = this.container?.querySelector('#form-preview') as HTMLElement | null;
+    if (!previewEl) return;
+
+    const preview = buildQuestionPreview(buildQuestionDraft(this.collectDraftInput(form)));
+
+    const choiceRows = preview.choices.length > 0
+      ? preview.choices.map((choice) => `
+          <div class="admin-preview__choice ${choice.isCorrect ? 'admin-preview__choice--correct' : ''}">
+            <span class="admin-preview__choice-label">${this.esc(choice.label)}</span>
+            <span>${this.esc(choice.text)}</span>
+            ${choice.isCorrect ? '<span class="admin-preview__tag">correct</span>' : ''}
+          </div>`).join('')
+      : '<div class="admin-preview__muted">No choices (not a multiple-choice question).</div>';
+
+    const answerLine =
+      preview.type === QuestionType.Identification
+        ? `<div><strong>Accepted answers:</strong> ${this.esc(preview.acceptedAnswers.join(', ') || preview.correctAnswerText || '—')}</div>`
+        : preview.type === QuestionType.Essay
+          ? `<div><strong>Model answer:</strong> ${this.esc(preview.expectedAnswer ?? '—')}</div>`
+          : `<div><strong>Correct:</strong> ${this.esc(preview.correctAnswerText ?? '—')}</div>`;
+
+    const issueList = preview.issues.length > 0
+      ? `<div class="admin-preview__issues">${preview.issues.map((i) => `• ${this.esc(i.field)}: ${this.esc(i.message)}`).join('<br/>')}</div>`
+      : '';
+
+    previewEl.hidden = false;
+    previewEl.innerHTML = `
+      <div class="admin-preview">
+        <div class="admin-preview__header">
+          <span class="admin-preview__badge ${preview.playable ? 'admin-preview__badge--ok' : 'admin-preview__badge--warn'}">
+            ${preview.playable ? 'Playable' : 'Not playable'}
+          </span>
+          <span class="admin-preview__meta">
+            ${this.esc(preview.educationalTier ?? '—')} · ${this.esc(preview.subject ?? '—')} · ${this.esc(preview.topic || '—')}
+            · Diff ${preview.difficulty ?? '—'} · ${preview.timeLimit ?? '—'}s · ${preview.baseMasteryExp ?? '—'} EXP
+          </span>
+        </div>
+        <div class="admin-preview__prompt">${this.esc(preview.prompt || '(no prompt)')}</div>
+        <div class="admin-preview__choices">${choiceRows}</div>
+        <div class="admin-preview__answer">${answerLine}</div>
+        ${preview.explanation ? `<div class="admin-preview__explanation"><strong>Explanation:</strong> ${this.esc(preview.explanation)}</div>` : ''}
+        ${issueList}
+      </div>
+    `;
   }
 
   private showValidationErrors(errors: string[]): void {
@@ -408,7 +580,11 @@ export class AdminDashboard {
       <div class="admin-list__filters" id="list-filters">
         <select class="admin-list__filter-select" data-filter="subject">
           <option value="">All Subjects</option>
-          ${Object.values(SubjectId).map((s) => `<option value="${s}">${s}</option>`).join('')}
+          ${Object.values(SubjectId).map((s) => `<option value="${s}">${this.esc(getSubjectDisplayName(s))}</option>`).join('')}
+        </select>
+        <select class="admin-list__filter-select" data-filter="topic">
+          <option value="">All Topics</option>
+          ${TOPIC_TAXONOMY.map((t) => `<option value="${t.id}">${this.esc(getSubjectDisplayName(t.subject))} · ${this.esc(t.displayName)}</option>`).join('')}
         </select>
         <select class="admin-list__filter-select" data-filter="educationalTier">
           <option value="">All Tiers</option>
@@ -426,8 +602,14 @@ export class AdminDashboard {
           <option value="">Published</option>
           ${Object.values(QuestionStatus).map((s) => `<option value="${s}">${s}</option>`).join('')}
         </select>
+        <select class="admin-list__filter-select" data-filter="reviewStatus">
+          <option value="">All Review States</option>
+          ${Object.values(ContentReviewStatus).map((r) => `<option value="${r}">${r}</option>`).join('')}
+        </select>
       </div>
       <div class="admin-list__count" id="list-count">${allQuestions.length} questions</div>
+      <div class="admin-list__coverage" id="list-coverage">${this.buildCoverageText(allQuestions)}</div>
+      <div class="admin-list__coverage" id="list-review-summary">${this.buildReviewSummaryText(allQuestions)}</div>
       <table class="admin-list__table">
         <thead>
           <tr>
@@ -507,14 +689,54 @@ export class AdminDashboard {
       if (!value || !filterName) return;
 
       if (filterName === 'subject') criteria.subject = value as SubjectId;
-      else if (filterName === 'educationalTier') criteria.educationalTier = value as EducationalTier;
+      else if (filterName === 'topic') {
+        const rawTopics = resolveRawTopicsForTopic(value);
+        if (rawTopics.length > 0) criteria.topics = rawTopics;
+      } else if (filterName === 'educationalTier') criteria.educationalTier = value as EducationalTier;
       else if (filterName === 'difficulty') criteria.difficulty = parseInt(value, 10);
       else if (filterName === 'type') criteria.type = value as QuestionType;
       else if (filterName === 'status') criteria.status = value as QuestionStatus;
+      else if (filterName === 'reviewStatus') criteria.reviewStatus = value as ContentReviewStatus;
     });
 
     const filtered = this.manager.getRepository().filter(criteria);
+    this.lastListCriteria = criteria;
     this.renderTableRows(filtered);
+  }
+
+  /**
+   * Summarises how the taxonomy covers the given pool. Unmapped questions are
+   * reported here, never reclassified.
+   */
+  private buildCoverageText(questions: Question[]): string {
+    const report = buildTaxonomyCoverageReport(questions);
+    const emptySubjects = report.subjectsWithoutContent
+      .map((subject) => getSubjectDisplayName(subject))
+      .join(', ');
+    const noContent = emptySubjects ? ` Subjects without content: ${this.esc(emptySubjects)}.` : '';
+
+    if (report.unmappedCount === 0) {
+      return `Taxonomy coverage: all ${report.totalQuestions} questions map to a topic.${noContent}`;
+    }
+
+    const sample = report.unmappedQuestions
+      .slice(0, 5)
+      .map((question) => `${question.subject}/${question.topic}`)
+      .join(', ');
+    const suffix = report.unmappedCount > 5 ? ', …' : '';
+    return `Taxonomy coverage: ${report.unmappedCount} of ${report.totalQuestions} questions are unmapped (${this.esc(sample)}${suffix}).${noContent}`;
+  }
+
+  /**
+   * Summarises authoring gaps and similar-prompt candidates across the pool.
+   * Candidates are reported, never treated as duplicate verdicts.
+   */
+  private buildReviewSummaryText(questions: Question[]): string {
+    const report = buildReviewReport(questions);
+    const candidates = report.similarPromptPairs.length;
+    const candidateText =
+      candidates > 0 ? ` ${candidates} similar-prompt candidate(s) need review.` : '';
+    return `Content review: ${report.questionsWithGaps} question(s) have ${report.gapCount} authoring gap(s).${candidateText}`;
   }
 
   private handleEdit(id: string): void {
@@ -548,14 +770,29 @@ export class AdminDashboard {
     );
   }
 
-  private showConfirmDialog(message: string, onConfirm: () => Promise<void>): void {
+  /**
+   * Shows a blocking confirmation dialog. Used for every destructive or
+   * bulk action (delete, import, restore) so nothing irreversible happens
+   * without an explicit confirmation.
+   */
+  private showConfirmDialog(
+    message: string,
+    onConfirm: () => Promise<void> | void,
+    options: { confirmLabel?: string; danger?: boolean; messageHtml?: string } = {},
+  ): void {
+    const confirmLabel = options.confirmLabel ?? 'Delete';
+    const confirmClass = options.danger === false
+      ? 'admin-form__btn--primary'
+      : 'admin-form__btn--danger';
+    const body = options.messageHtml ?? this.esc(message);
+
     const overlay = document.createElement('div');
     overlay.className = 'admin-confirm';
     overlay.innerHTML = `
       <div class="admin-confirm__card">
-        <div class="admin-confirm__msg">${this.esc(message)}</div>
+        <div class="admin-confirm__msg">${body}</div>
         <div class="admin-confirm__actions">
-          <button class="admin-form__btn admin-form__btn--danger" id="confirm-yes">Delete</button>
+          <button class="admin-form__btn ${confirmClass}" id="confirm-yes">${this.esc(confirmLabel)}</button>
           <button class="admin-form__btn admin-form__btn--secondary" id="confirm-no">Cancel</button>
         </div>
       </div>
@@ -575,92 +812,319 @@ export class AdminDashboard {
   // ─── Import / Export ────────────────────────────────────────────────────────
 
   private renderImportExport(panelEl: HTMLElement): void {
+    const repoCount = this.manager.getRepository().count();
     panelEl.innerHTML = `
       <div class="admin-io__section">
         <h3 class="admin-io__title">📥 Import Questions</h3>
-        <p class="admin-io__desc">Upload a JSON file containing an array of question objects. All questions are validated before importing.</p>
+        <p class="admin-io__desc">Upload a versioned question bank export (format v${QUESTION_BANK_FORMAT_VERSION}) or a legacy question array. The format version is checked first, every record is validated in a dry run, and a backup of the current bank is taken before anything is committed.</p>
         <div class="admin-io__file-input">
           <input type="file" accept=".json" id="import-file-input" />
         </div>
-        <button class="admin-form__btn admin-form__btn--primary" id="import-btn">Import</button>
+        <div class="admin-form__actions">
+          <button class="admin-form__btn admin-form__btn--secondary" id="validate-import-btn">🔎 Validate (dry run)</button>
+          <button class="admin-form__btn admin-form__btn--primary" id="import-btn">Import</button>
+        </div>
         <div id="import-result"></div>
       </div>
       <div class="admin-io__section">
         <h3 class="admin-io__title">📤 Export Questions</h3>
-        <p class="admin-io__desc">Download all questions as a JSON file. The exported file can be re-imported.</p>
-        <button class="admin-form__btn admin-form__btn--primary" id="export-btn">Export as JSON</button>
+        <p class="admin-io__desc">Download a versioned question bank file (format v${QUESTION_BANK_FORMAT_VERSION}). Full exports preserve tombstone and bundled-override metadata; the file can be re-imported unchanged.</p>
+        <p class="admin-io__desc" id="export-filter-note"></p>
+        <div class="admin-form__actions">
+          <button class="admin-form__btn admin-form__btn--primary" id="export-btn">Export All (${repoCount})</button>
+          <button class="admin-form__btn admin-form__btn--secondary" id="export-filtered-btn">Export Filtered Set</button>
+        </div>
         <div id="export-result"></div>
+      </div>
+      <div class="admin-io__section">
+        <h3 class="admin-io__title">🧾 Export Review Report</h3>
+        <p class="admin-io__desc">Download a content-review report listing authoring gaps, similar-prompt candidates, and review-status counts. It changes no question.</p>
+        <button class="admin-form__btn admin-form__btn--primary" id="review-report-btn">Export Review Report (JSON)</button>
+        <div id="review-report-result"></div>
+      </div>
+      <div class="admin-io__section">
+        <h3 class="admin-io__title">💾 Backup &amp; Restore</h3>
+        <p class="admin-io__desc">Snapshot the bank before bulk changes. The most recent snapshot can be restored (this replaces the current bank).</p>
+        <div class="admin-form__actions">
+          <button class="admin-form__btn admin-form__btn--secondary" id="backup-btn">Download Backup</button>
+          <button class="admin-form__btn admin-form__btn--secondary" id="restore-backup-btn" disabled>Restore Last Backup</button>
+        </div>
+        <div id="backup-result"></div>
       </div>
     `;
 
+    this.updateExportFilterNote();
+    this.updateRestoreButton();
     this.bindImportExportEvents(panelEl);
   }
 
   private bindImportExportEvents(panelEl: HTMLElement): void {
-    const importBtn = panelEl.querySelector('#import-btn') as HTMLButtonElement;
-    const exportBtn = panelEl.querySelector('#export-btn') as HTMLButtonElement;
+    (panelEl.querySelector('#validate-import-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => this.handleValidateImport(),
+    );
+    (panelEl.querySelector('#import-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => void this.handleImport(),
+    );
+    (panelEl.querySelector('#export-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => void this.handleExport(false),
+    );
+    (panelEl.querySelector('#export-filtered-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => void this.handleExport(true),
+    );
+    (panelEl.querySelector('#review-report-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => this.handleReviewReportExport(),
+    );
+    (panelEl.querySelector('#backup-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => this.handleBackup(),
+    );
+    (panelEl.querySelector('#restore-backup-btn') as HTMLButtonElement)?.addEventListener(
+      'click',
+      () => this.handleRestoreBackup(),
+    );
+  }
 
-    importBtn?.addEventListener('click', () => void this.handleImport());
-    exportBtn?.addEventListener('click', () => this.handleExport());
+  /** Reads the selected import file, or reports why it cannot be read. */
+  private async readImportFile(): Promise<{ text?: string; error?: string }> {
+    const fileInput = this.container?.querySelector('#import-file-input') as HTMLInputElement | null;
+    const file = fileInput?.files?.[0];
+    if (!file) return { error: 'Please select a JSON file.' };
+    try {
+      return { text: await file.text() };
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  }
+
+  /** Renders a dry-run import report (never mutates anything). */
+  private renderImportReport(preview: QuestionBankImportPreview): string {
+    if (!preview.ok) {
+      return `<div class="admin-io__result admin-io__result--error">❌ ${this.esc(preview.message ?? 'Import payload could not be read.')}</div>`;
+    }
+
+    const formatLabel =
+      preview.formatVersion === 0
+        ? 'legacy file, no version envelope'
+        : `format v${preview.formatVersion}`;
+
+    const blocking = preview.records.filter((r) => r.errors.length > 0);
+    const warned = preview.records.filter((r) => r.warnings.length > 0);
+
+    const blockingLines = blocking.slice(0, 10).map((r) =>
+      `• [${this.esc(r.questionId ?? `#${r.index}`)}] ${this.esc(r.errors.join(' '))}`).join('<br/>');
+    const warnedLines = warned.slice(0, 10).map((r) =>
+      `• [${this.esc(r.questionId ?? `#${r.index}`)}] ${this.esc(r.warnings.join(' '))}`).join('<br/>');
+
+    const metadata: string[] = [];
+    if (preview.overrideCount > 0) {
+      metadata.push(`${preview.overrideCount} bundled override(s)`);
+    }
+    if (preview.tombstoneCount > 0) {
+      metadata.push(`${preview.tombstoneCount} tombstone(s) will be preserved`);
+    }
+
+    const cls = preview.canImport ? 'success' : 'error';
+    const headline = preview.canImport
+      ? `✅ ${preview.validCount} of ${preview.totalRecords} record(s) are importable (${formatLabel}).`
+      : `❌ ${preview.totalRecords} record(s) checked — ${preview.invalidCount} invalid, ${preview.duplicateIdCount} duplicate ID (${formatLabel}).`;
+
+    return `
+      <div class="admin-io__result admin-io__result--${cls}">
+        ${headline}
+        ${metadata.length > 0 ? `<div class="admin-io__detail">${metadata.map((m) => this.esc(m)).join(' · ')}</div>` : ''}
+        ${blockingLines ? `<div class="admin-io__detail">${blockingLines}</div>` : ''}
+        ${warnedLines ? `<div class="admin-io__warnings">⚠ ${preview.duplicatePromptWarnings} prompt warning(s) — candidates only:<br/>${warnedLines}</div>` : ''}
+      </div>
+    `;
+  }
+
+  private handleValidateImport(): void {
+    const resultEl = this.container?.querySelector('#import-result');
+    if (!resultEl) return;
+    void this.readImportFile().then(({ text, error }) => {
+      if (error !== undefined || text === undefined) {
+        resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">${this.esc(error ?? 'Could not read file.')}</div>`;
+        return;
+      }
+      resultEl.innerHTML = this.renderImportReport(this.manager.previewBankImport(text));
+    });
   }
 
   private async handleImport(): Promise<void> {
-    const fileInput = this.container?.querySelector('#import-file-input') as HTMLInputElement;
     const resultEl = this.container?.querySelector('#import-result');
     if (!resultEl) return;
 
-    const file = fileInput?.files?.[0];
-    if (!file) {
-      resultEl.innerHTML = '<div class="admin-io__result admin-io__result--error">Please select a JSON file.</div>';
+    const { text, error } = await this.readImportFile();
+    if (error !== undefined || text === undefined) {
+      resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">${this.esc(error ?? 'Could not read file.')}</div>`;
       return;
     }
 
-    try {
-      const text = await file.text();
-      const result = await this.manager.importFromJson(text);
+    const preview = this.manager.previewBankImport(text);
 
-      if (result.success) {
-        resultEl.innerHTML = `
-          <div class="admin-io__result admin-io__result--success">
-            ✅ Imported ${result.importedCount} questions successfully.
-            ${result.skippedCount > 0 ? `(${result.skippedCount} skipped)` : ''}
-          </div>
-        `;
-      } else {
-        const errorLines = result.errors.map((e) =>
-          `• ${e.questionId ? `[${e.questionId}] ` : ''}${e.message}`
-        ).join('<br/>');
-        resultEl.innerHTML = `
-          <div class="admin-io__result admin-io__result--error">
-            ❌ Import failed. ${result.errors.length} error(s):<br/>${errorLines}
-          </div>
-        `;
+    // Destructive-action protection: never commit a batch the dry run rejected,
+    // and never commit without an explicit confirmation.
+    if (!preview.canImport) {
+      resultEl.innerHTML = this.renderImportReport(preview);
+      return;
+    }
+
+    const current = this.manager.getRepository().count();
+    const extras: string[] = [];
+    if (preview.overrideCount > 0) {
+      extras.push(`${preview.overrideCount} record(s) will replace bundled question(s).`);
+    }
+    if (preview.tombstoneCount > 0) {
+      extras.push(`${preview.tombstoneCount} tombstone(s) will be preserved.`);
+    }
+
+    const summary =
+      `Import ${preview.validCount} question(s)? A backup of the current ${current} question(s) will be taken first.` +
+      (extras.length > 0 ? ` ${extras.join(' ')}` : '') +
+      (preview.duplicatePromptWarnings > 0
+        ? ` ${preview.duplicatePromptWarnings} prompt warning(s) were flagged as candidates for review.`
+        : '');
+
+    this.showConfirmDialog(
+      summary,
+      async () => {
+        this.lastBackup = this.manager.createBackup();
+        const result = await this.manager.importBankFromJson(text);
+        if (result.success) {
+          const details: string[] = [];
+          if (result.overrideCount > 0) details.push(`${result.overrideCount} bundled override(s)`);
+          if (result.tombstoneCount > 0) details.push(`${result.tombstoneCount} tombstone(s) applied`);
+          resultEl.innerHTML = `<div class="admin-io__result admin-io__result--success">✅ Imported ${result.importedCount} questions successfully${details.length > 0 ? ` (${details.join(', ')})` : ''}.</div>`;
+        } else {
+          resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">❌ Import failed: ${this.esc(result.errors.map((e) => e.message).join(' '))}</div>`;
+        }
+        this.updateRestoreButton();
+      },
+      { confirmLabel: 'Import', danger: false },
+    );
+  }
+
+  private handleBackup(): void {
+    const resultEl = this.container?.querySelector('#backup-result');
+    const backup = this.manager.createBackup();
+    this.lastBackup = backup;
+    this.downloadJson(backup.json, `knowledge-realms-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    if (resultEl) {
+      resultEl.innerHTML = `<div class="admin-io__result admin-io__result--success">✅ Backup created (${backup.questionCount} questions).</div>`;
+    }
+    this.updateRestoreButton();
+  }
+
+  private handleRestoreBackup(): void {
+    const resultEl = this.container?.querySelector('#backup-result');
+    const backup = this.lastBackup;
+    if (!backup) return;
+
+    this.showConfirmDialog(
+      `Restore the backup taken ${backup.createdAt}? This replaces the current ${this.manager.getRepository().count()} question(s) with ${backup.questionCount}.`,
+      async () => {
+        // A restore is a bulk replacement: snapshot the current bank first so it
+        // can be reverted with the same button.
+        const previous = this.manager.createBackup();
+        const result = await this.manager.restoreBackup(backup.json);
+        if (result.success) {
+          this.lastBackup = previous;
+          this.updateRestoreButton();
+        }
+        if (resultEl) {
+          resultEl.innerHTML = result.success
+            ? `<div class="admin-io__result admin-io__result--success">✅ Restored ${result.restoredCount} questions. The previous ${previous.questionCount} question(s) were backed up first; use Restore to revert.</div>`
+            : `<div class="admin-io__result admin-io__result--error">❌ Restore failed: ${this.esc(result.errors.map((e) => e.message).join(' '))}</div>`;
+        }
+      },
+      { confirmLabel: 'Restore', danger: true },
+    );
+  }
+
+  private updateRestoreButton(): void {
+    const btn = this.container?.querySelector('#restore-backup-btn') as HTMLButtonElement | null;
+    if (btn) btn.disabled = !this.lastBackup;
+  }
+
+  private async handleExport(filtered: boolean): Promise<void> {
+    const resultEl = this.container?.querySelector('#export-result');
+    try {
+      const criteria =
+        filtered && Object.keys(this.lastListCriteria).length > 0
+          ? this.lastListCriteria
+          : undefined;
+      const json = await this.manager.exportBankToJson(criteria, { appVersion: GAME_VERSION });
+      const count = criteria
+        ? this.manager.getRepository().filter(criteria).length
+        : this.manager.getRepository().count();
+      this.downloadJson(
+        json,
+        `knowledge-realms-question-bank-${filtered ? 'filtered-' : ''}${new Date().toISOString().slice(0, 10)}.json`,
+      );
+      if (resultEl) {
+        resultEl.innerHTML = `<div class="admin-io__result admin-io__result--success">✅ Exported ${count} question(s) as format v${QUESTION_BANK_FORMAT_VERSION}${criteria ? ' (filtered set; tombstones omitted)' : ''}.</div>`;
       }
     } catch (err) {
-      resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">Error: ${(err as Error).message}</div>`;
+      if (resultEl) {
+        resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">Error: ${this.esc((err as Error).message)}</div>`;
+      }
     }
   }
 
-  private handleExport(): void {
-    const resultEl = this.container?.querySelector('#export-result');
+  private handleReviewReportExport(): void {
+    const resultEl = this.container?.querySelector('#review-report-result');
     try {
-      const json = this.manager.exportToJson();
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `knowledge-realms-questions-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-
+      const report = buildReviewReport(this.manager.getRepository().getAll());
+      this.downloadJson(
+        renderReviewReportJson(report),
+        `knowledge-realms-review-report-${new Date().toISOString().slice(0, 10)}.json`,
+      );
       if (resultEl) {
-        resultEl.innerHTML = '<div class="admin-io__result admin-io__result--success">✅ Export started.</div>';
+        resultEl.innerHTML = `<div class="admin-io__result admin-io__result--success">✅ Review report exported (${report.gapCount} gap(s), ${report.similarPromptPairs.length} candidate pair(s)).</div>`;
       }
     } catch (err) {
       if (resultEl) {
-        resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">Error: ${(err as Error).message}</div>`;
+        resultEl.innerHTML = `<div class="admin-io__result admin-io__result--error">Error: ${this.esc((err as Error).message)}</div>`;
       }
     }
+  }
+
+  /** Describes the currently-applied list filters, for the export note. */
+  private describeCriteria(criteria: QuestionFilterCriteria): string {
+    const parts: string[] = [];
+    if (criteria.subject) parts.push(`subject=${criteria.subject}`);
+    if (criteria.topics && criteria.topics.length > 0) parts.push(`topic=${criteria.topics.join('|')}`);
+    if (criteria.educationalTier) parts.push(`tier=${criteria.educationalTier}`);
+    if (criteria.difficulty !== undefined) parts.push(`difficulty=${criteria.difficulty}`);
+    if (criteria.type) parts.push(`type=${criteria.type}`);
+    if (criteria.status) parts.push(`status=${criteria.status}`);
+    if (criteria.reviewStatus) parts.push(`review=${criteria.reviewStatus}`);
+    return parts.join(', ');
+  }
+
+  private updateExportFilterNote(): void {
+    const note = this.container?.querySelector('#export-filter-note');
+    if (!note) return;
+    const description = this.describeCriteria(this.lastListCriteria);
+    note.textContent = description
+      ? `Filtered export uses the current list filters: ${description}. Tombstones are only included in full exports.`
+      : 'Filtered export uses the current list filters. None are applied, so it falls back to all questions. Tombstones are only included in full exports.';
+  }
+
+  /** Triggers a client-side JSON file download. */
+  private downloadJson(json: string, filename: string): void {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ─── Utilities ──────────────────────────────────────────────────────────────

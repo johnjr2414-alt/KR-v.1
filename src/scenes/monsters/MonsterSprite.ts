@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { MonsterDefinition } from '../../core/types/monster';
+import { prefersReducedMotion } from '../../ui/motion';
 import type { AnimationState } from '../animations';
 
 /**
@@ -82,6 +83,10 @@ export class MonsterSprite extends Phaser.GameObjects.Container {
     scene.add.existing(this);
 
     // ── Idle bob tween ───────────────────────────────────────────────────────
+    if (prefersReducedMotion()) {
+      return;
+    }
+
     this.idleTween = scene.tweens.add({
       targets: this,
       y: y - 6,
@@ -124,6 +129,11 @@ export class MonsterSprite extends Phaser.GameObjects.Container {
     }
 
     if (state === 'hurt') {
+      if (prefersReducedMotion()) {
+        this.drawBody(1.0);
+        this.animState = 'idle';
+        return;
+      }
       this.scene.tweens.add({
         targets: this.visual,
         alpha: 0.3,
@@ -139,6 +149,11 @@ export class MonsterSprite extends Phaser.GameObjects.Container {
     }
 
     if (state === 'attack') {
+      if (prefersReducedMotion()) {
+        this.setScale(1.0);
+        this.animState = 'idle';
+        return;
+      }
       this.scene.tweens.add({
         targets: this,
         scaleX: 1.2,

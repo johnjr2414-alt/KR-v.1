@@ -360,19 +360,21 @@ according to report.
 
 26.8 Main story, side quests, NPCs, and achievements.
 
-## Phase 27 --- Economy and Professions
+## Phase 27 --- Real-World Professions and Careers
 
-27.1 Economy balance and item pricing.
+27.1 Profession framework, categories, definitions, and enrollment.
 
-27.2 Gathering professions and resource nodes.
+27.2 Workplace, facility, and world integration.
 
-27.3 Crafting, recipes, and production.
+27.3 Professional assignment engine (task framework).
 
-27.4 Banking, savings, and fixed deposits.
+27.4 Profession question integration.
 
-27.5 Business ownership, employees, operating costs, and income.
+27.5 Profession experience, rank, and reputation progression.
 
-27.6 Property, storage, and advanced trading.
+27.6 Career UI, NPC, and quest integration.
+
+27.7 Seed professions end-to-end and extensibility validation.
 
 ## Phase 28 --- Save Integrity and Administration Hardening
 
@@ -1732,9 +1734,8 @@ Implement Golden Capital as a data-driven region. Inspect the existing
 economy and NPC architecture before introducing merchants, services, or
 civic activities.
 
-Do not implement new banking/business mechanics here unless those
-systems have already been completed in Phase 27. Use existing services
-only.
+Do not implement new banking or business mechanics here. Use existing
+services only.
 
 Test navigation, NPC interactions, region content, combat, and save
 persistence.
@@ -1819,130 +1820,261 @@ phase.
 
 ------------------------------------------------------------------------
 
-# PHASE 27 --- ECONOMY AND PROFESSIONS
+# PHASE 27 --- REAL-WORLD PROFESSIONS AND CAREERS
 
-# PHASE 27.1 --- ECONOMY BALANCE
+Implement a reusable, configurable Real-World Professions & Career
+System. Players choose real-world careers, visit profession-specific
+workplaces, perform professional activities, answer profession-related
+questions, complete assignments, earn rewards, and advance.
 
-Inspect current Gold rewards, shop prices, sell values, drops, and
-progression curves. Create a balance report before changing values.
-
-Evaluate: - Gold earned per encounter. - Cost of consumables. -
-Equipment prices. - Sell-to-buy ratios. - Potential infinite money
-loops. - Reward scaling by level. - Inventory limitations.
-
-Do not add new economy systems. Change values only with a documented
-reason and tests.
-
-Create `docs/PHASE_27_1_ECONOMY_REPORT.md`. Stop after this phase.
+This is a framework phase, not a content dump. Keep profession rules and
+business logic headless and independent of Phaser. Use configurable data
+definitions following existing conventions. Integrate with the existing
+question, mastery, quest, NPC, economy, and session systems. Do not
+create a second question engine and do not duplicate existing systems.
+Do not redesign unrelated systems or remove existing features.
 
 ------------------------------------------------------------------------
 
-# PHASE 27.2 --- GATHERING PROFESSIONS
+# PHASE 27.1 --- PROFESSION FRAMEWORK, CATEGORIES, AND ENROLLMENT
 
-Implement a configurable gathering framework for professions that the
-user approves, such as mining, herb gathering, or woodcutting.
+Inspect the player session, storage/save schema, education tiers, subject
+mastery, currency, quest, and NPC/world registries before writing code.
 
-Inspect item/resource definitions, world interaction patterns,
-inventory, and quest objectives.
+Build a headless profession domain (for example `src/professions/`).
 
-Requirements: - Resource node definitions. - Gathering requirements. -
-Interaction feedback. - Yield rules. - Respawn rules. - Inventory
-capacity checks. - Optional tool requirements only if modeled. - No
-duplicate resource claims from repeated input. - Persistence where
-required.
+- Configurable profession categories (for example Healthcare; Engineering
+  and Technology; Architecture and Construction; Education and Science;
+  Business and Finance; Law). Categories are examples, not hardcoded
+  limits.
+- Profession definitions: id, name, category, description,
+  responsibilities, associated workplaces, enrollment requirements,
+  ranks, and question/subject tags. New professions must be addable by
+  configuration without changing core logic.
+- Configurable rank ladders per profession. Example Doctor: Medical
+  Trainee, Junior Doctor, General Practitioner, Senior Doctor, Medical
+  Specialist, Chief Physician. Ranks are game progression, not
+  real-world licenses.
+- Enrollment requirements that are configurable and optional per
+  profession (character level, subject mastery, Gold, prerequisite
+  quests). Do not require every condition for every profession.
+- A career profile holding one or more enrolled professions. Each
+  enrolled profession tracks its own level, EXP, rank, reputation, and
+  assignment history independently.
+- Enrollment logic: prevent duplicate enrollment in the same profession,
+  allow multiple professions at once, and validate requirements.
+- Validation for profession, rank, and requirement data. Handle missing
+  or invalid definitions safely.
 
-Keep gathering rules headless and configurable. Add tests for yields,
-requirements, capacity, and repeat interaction.
+Persist career data through the existing storage system as an optional,
+backward-compatible `SaveData` field. Do not break existing saves; use
+safe defaults or documented migration. Wire it into
+`PlayerSessionManager`.
 
-Create `docs/PHASE_27_2_IMPLEMENTATION_REPORT.md`. Stop after this
-phase.
+Fully define the three seed professions (Doctor, Electrical Engineer,
+Architect); other professions may be added as definitions. Do not
+implement workplaces, assignments, or UI yet.
 
-------------------------------------------------------------------------
+Add tests for definitions and validation, enrollment, multiple
+professions, duplicate-enrollment prevention, invalid/missing data, and
+save/load persistence.
 
-# PHASE 27.3 --- CRAFTING AND PRODUCTION
-
-Implement a data-driven recipe and crafting system.
-
-Inspect item definitions, gathering resources, inventory, equipment, and
-economy.
-
-Support: - Recipe ID. - Required ingredients and quantities. - Required
-profession/level if approved. - Output item and quantity. - Crafting
-cost if configured. - Validation and transaction safety. - Recipe
-discovery/unlock if supported.
-
-A failed craft must not partially consume ingredients. Prevent duplicate
-craft submissions. Test insufficient ingredients, invalid recipes,
-output capacity, and persistence.
-
-Create `docs/PHASE_27_3_IMPLEMENTATION_REPORT.md`. Stop after this
-phase.
-
-------------------------------------------------------------------------
-
-# PHASE 27.4 --- BANKING, SAVINGS, AND FIXED DEPOSITS
-
-Inspect the existing `BankService`, `CurrencyService`, time handling,
-save schema, and UI architecture.
-
-Connect banking to a player-facing bank NPC/modal.
-
-Before implementation, document: - Deposit/withdrawal rules. - Interest
-calculation. - Time basis. - Offline accrual behavior. - Caps and
-exploit prevention. - What happens if system time is changed. - Whether
-the existing business/bank model is actually implemented or only
-partially modeled.
-
-Requirements: - Use a reliable, documented time policy. - Cap offline
-interest/accrual. - Validate amounts. - Prevent negative balances and
-duplicate claims. - Persist balances and timestamps safely. - Do not
-claim the system is tamper-proof in an offline browser game.
-
-Ask the user to approve any undecided interest rates or fixed-deposit
-lock rules.
-
-Create `docs/PHASE_27_4_IMPLEMENTATION_REPORT.md`. Stop after this
-phase.
+Create `docs/PHASE_27_1_IMPLEMENTATION_REPORT.md`. Stop after this phase.
 
 ------------------------------------------------------------------------
 
-# PHASE 27.5 --- PLAYER BUSINESSES AND EMPLOYEES
+# PHASE 27.2 --- WORKPLACE, FACILITY, AND WORLD INTEGRATION
 
-Do not begin until the user approves the business rules.
+Inspect existing world definitions (buildings, maps, regions) and the NPC
+registry before implementing.
 
-Inspect the current business models and profit formulas. First produce a
-design proposal for: - Business types. - Startup costs. - Production. -
-Employee roles and wages. - Operating expenses. - Revenue. -
-Maintenance. - Offline progress. - Claim intervals. - Loss conditions. -
-Upgrade paths.
+Implement a configurable workplace system that links professions to
+locations in the world.
 
-Clearly distinguish existing implemented formulas from proposed
-features.
+- Workplace definitions: id, name, description, associated professions,
+  facilities, NPCs, interaction points, and access requirements.
+- Facility definitions nested within workplaces (for example Hospital:
+  Reception, Examination Room, Laboratory, Medical Office; Engineering
+  Center: Design Office, Electronics Laboratory, Mechanical Workshop,
+  Project Office; Architecture Studio: Design Room, Planning Office,
+  Project Room).
+- A workplace registry plus a headless access and validation service
+  (who may enter and which facilities and assignments are reachable).
+- Multiple professions may share one workplace.
+- Integrate workplaces with existing building and map definitions. Add a
+  Career Center or Guild Hall building and at least one interactive NPC
+  that introduces available professions and enrollment.
+- Keep workplace data separate from code and validate it.
 
-After approval, implement the headless domain model first, then UI in a
-later subphase. Cap offline income and document clock-manipulation
-limitations.
+Do not build complex simulations; simple interactive objects, NPCs, and
+menus are sufficient.
 
-Create a design report first. Do not build a large business UI in the
-same task.
+Add tests for workplace definitions, profession associations, access
+requirements, and facility resolution.
+
+Create `docs/PHASE_27_2_IMPLEMENTATION_REPORT.md`. Stop after this phase.
 
 ------------------------------------------------------------------------
 
-# PHASE 27.6 --- PROPERTY, STORAGE, AND ADVANCED TRADING
+# PHASE 27.3 --- PROFESSIONAL ASSIGNMENT ENGINE
 
-Inspect the approved property/business/economy model before
+Inspect item rewards, quest objectives, reward calculation, and
+profession enrollment before implementing.
+
+Implement a reusable, configurable professional assignment framework.
+
+- Task types: Knowledge Assessment, Problem Solving, Case Analysis,
+  Project Completion, Practical Simulation, Research Assignment.
+- Assignment definitions: unique id, title, description, profession
+  association, required rank, difficulty, task type, required question
+  topics and subjects, educational tier, objectives, completion
+  conditions, and rewards.
+- A headless assignment engine: availability (profession, rank,
+  prerequisites), acceptance, progress tracking, completion, and reward
+  granting.
+- Configurable rewards: profession EXP, character EXP, subject mastery
+  EXP, Gold, and reputation.
+- Prevent duplicate completion rewards for the same assignment
+  (idempotent completion).
+- Track active and completed assignments and assignment history on the
+  career profile.
+- New assignments must be addable by configuration without changing the
+  engine. Do not hardcode profession-specific logic into the general
+  engine.
+
+Add a small, clearly labelled sample: at least two assignments for each
+seed profession.
+
+Add tests for availability, acceptance, completion, duplicate-reward
+prevention, and persistence.
+
+Create `docs/PHASE_27_3_IMPLEMENTATION_REPORT.md`. Stop after this phase.
+
+------------------------------------------------------------------------
+
+# PHASE 27.4 --- PROFESSION QUESTION INTEGRATION
+
+Inspect the existing question repository, selector, difficulty engine,
+taxonomy, and educational tier rules before implementing.
+
+Integrate assignments with the existing question system. Do not create a
+separate question engine.
+
+- Extend question metadata only when necessary with optional,
+  backward-compatible fields such as profession tags, specialty tags, and
+  task category. Existing questions must remain valid without them.
+- For an accepted assignment, identify the profession, required
+  knowledge topics, educational tier, and difficulty, then retrieve
+  matching questions from the existing repository.
+- Prioritize profession relevance in selection. If suitable
+  profession-specific questions are unavailable, apply a configurable
+  fallback strategy and report missing coverage.
+- Respect the educational tier system (Levels 1-10 Elementary, 11-50
+  Junior High, 51-100 Senior High, 101-150 College, 151-200 Master's,
+  201-250 PhD, 251+ Specialization; later tiers provisional). Do not
+  serve beginner players advanced professional questions.
+- Maintain compatibility with existing PvE retrieval, answer evaluation,
+  and mastery systems.
+
+Add a small, clearly labelled sample of profession-related question
+mappings for the seed professions.
+
+Add tests for profession-specific selection, tier compatibility,
+difficulty handling, fallback behavior, and missing-coverage reporting.
+
+Create `docs/PHASE_27_4_IMPLEMENTATION_REPORT.md`. Stop after this phase.
+
+------------------------------------------------------------------------
+
+# PHASE 27.5 --- PROFESSION EXPERIENCE, RANK, AND REPUTATION PROGRESSION
+
+Inspect existing character progression, mastery, and reward paths before
 implementing.
 
-Propose a small, internally consistent first version: - Property
-ownership. - Purchase cost. - Storage capacity or utility. - Recurring
-costs only if approved. - Trading rules. - Transaction history if
-useful.
+Implement independent profession progression.
 
-Avoid introducing speculative markets or complex investments without a
-defined design. Ensure all transactions are validated and persisted.
+- Profession EXP curve and configurable rank thresholds per profession.
+- Configurable rank unlocks: advanced assignments, new facilities,
+  harder cases and projects, higher rewards, and career titles.
+- Reputation per profession, earned from completed assignments. Keep it
+  simple and configurable, and do not introduce severe penalties for
+  incorrect answers.
+- Reward distribution on assignment completion: profession EXP,
+  reputation, and the configured character EXP, subject mastery EXP, and
+  Gold, routed through the existing progression, mastery, and currency
+  services.
 
-Create `docs/PHASE_27_6_IMPLEMENTATION_REPORT.md`. Stop after this
-phase.
+Keep profession progression strictly separate from character level and
+subject mastery; neither implies the other.
+
+Prepare the architecture for future specializations (for example Doctor:
+Cardiology, Neurology, Pediatrics, Surgery) without implementing them
+yet.
+
+Add tests for profession EXP calculations, rank progression, reputation,
+reward integration, and separation from character level and mastery.
+
+Create `docs/PHASE_27_5_IMPLEMENTATION_REPORT.md`. Stop after this phase.
+
+------------------------------------------------------------------------
+
+# PHASE 27.6 --- CAREER UI, NPC, AND QUEST INTEGRATION
+
+Inspect existing UI components (dialogue, modals, journals) and
+interaction conventions before implementing.
+
+Create the career interfaces following existing UI patterns.
+
+- Career Selection: browse professions and view descriptions,
+  responsibilities, workplaces, and enrollment requirements, then
+  enroll.
+- Career Profile: enrolled professions, level, EXP progress, rank,
+  reputation, and completed assignments.
+- Workplace interface: facilities, NPCs, available assignments, and
+  profession activities.
+- Assignment interface: assignment information, objectives,
+  profession-related questions, progress, success or failure, and
+  rewards. Reuse the existing question modal where possible.
+
+Integrate NPCs that offer enrollment and assignments, and support career
+quests alongside professional assignments through the existing quest
+system. Keep presentation in the UI layer and rules in the headless
+profession modules.
+
+Extend `PlayerSessionManager` and storage to persist and restore all
+career data (enrolled professions, levels, EXP, ranks, reputation,
+active and completed assignments, and history) with safe defaults and
+migration.
+
+Add tests for UI-facing service logic where practical, and complete
+manual runtime verification for scene and UI wiring.
+
+Create `docs/PHASE_27_6_IMPLEMENTATION_REPORT.md`. Stop after this phase.
+
+------------------------------------------------------------------------
+
+# PHASE 27.7 --- SEED PROFESSIONS END-TO-END AND EXTENSIBILITY VALIDATION
+
+Complete the initial gameplay validation with three fully working
+professions: Doctor, Electrical Engineer, and Architect.
+
+Each must have: a profession definition, a workplace, at least one
+interactive NPC, at least two example assignments, profession-related
+questions, profession EXP and progression, rewards, and save/load
+support.
+
+Demonstrate that all three use the same underlying framework while
+offering different activities (for example Doctor case analysis,
+Electrical Engineer circuit problem solving, Architect design
+calculations).
+
+Then verify extensibility: add one additional profession through
+configuration only, with no engine changes, and confirm it works.
+
+Run the full regression suite (existing PvE, question evaluation,
+mastery, quests, and economy) and confirm no regressions.
+
+Create `docs/PHASE_27_7_IMPLEMENTATION_REPORT.md`. Stop after this phase.
 
 ------------------------------------------------------------------------
 

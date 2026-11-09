@@ -6,9 +6,22 @@ import {
   QuestionType,
   QuestionStatus,
   isValidDifficulty,
+  QUESTION_TIMER_MAX_SECONDS,
+  QUESTION_TIMER_MIN_SECONDS,
   type Question,
   type QuestionChoice,
 } from '../../core/types/question';
+import {
+  QUESTION_ALIAS_MAX_LENGTH,
+  QUESTION_EXPLANATION_MAX_LENGTH,
+  QUESTION_SUBTOPIC_MAX_LENGTH,
+  findDuplicateChoiceTextIndexes,
+  isStableQuestionId,
+  isStructurallyValidTimer,
+  isValidQuestionSource,
+  isValidReviewStatus,
+  normalizeAlias,
+} from './QuestionContentStandards';
 
 /**
  * A validation issue discovered on a specific field of a Question.
@@ -38,19 +51,25 @@ export class QuestionValidator {
   /**
    * Validates a complete or partial Question entity.
    *
-   * Rules enforced:
-   * - Common fields (id, educationalTier, subject, topic, difficulty, stem, timeLimit, baseMasteryExp, status, timestamps)
-   * - MultipleChoice: at least 2 choices, unique choice IDs, non-empty choice text, correctAnswer must match a choiceId
-   * - Identification: at least one accepted answer (either correctAnswer or acceptedAnswers)
-   * - Essay: must define expectedAnswer as model answer or grading reference
+   * Rules enforced (structural only — factual review is a separate audit):
+   * - Stable id, subject, topic, optional subtopic, tier, difficulty, type, prompt
+   * - MultipleChoice: at least 2 choices, unique choice IDs and texts, correctAnswer must match a choiceId
+   * - Identification: at least one accepted answer; aliases must be non-empty and unique after normalization
+   * - Essay: must define expectedAnswer as a model answer or grading reference
+   * - Timer must be a whole number of seconds inside the configured bounds
+   * - Explanation, source, and review status are optional and are not invented
    */
   static validate(question: Partial<Question>): QuestionValidationResult {
     const errors: QuestionValidationError[] = [];
 
     // ── Common Field Validation ──────────────────────────────────────────────
 
-    if (!question.id || typeof question.id !== 'string' || question.id.trim() === '') {
-      errors.push({ field: 'id', message: 'Question ID must be a non-empty string.' });
+    if (!question.id || typeof question.id !== 'string' || !isStableQuestionId(question.id)) {
+      errors.push({
+        field: 'id',
+        message:
+          'Question ID must be a stable lowercase slug or UUID (letters, digits, and single hyphens, 1–64 characters).',
+      });
     }
 
     const validTiers = Object.values(EducationalTier) as string[];
@@ -71,6 +90,19 @@ export class QuestionValidator {
 
     if (!question.topic || typeof question.topic !== 'string' || question.topic.trim() === '') {
       errors.push({ field: 'topic', message: 'Topic must be a non-empty string.' });
+    }
+
+    if (question.subtopic !== undefined) {
+      if (
+        typeof question.subtopic !== 'string' ||
+        question.subtopic.trim() === '' ||
+        question.subtopic.length > QUESTION_SUBTOPIC_MAX_LENGTH
+      ) {
+        errors.push({
+          field: 'subtopic',
+          message: `Subtopic, when present, must be a non-empty string of at most ${QUESTION_SUBTOPIC_MAX_LENGTH} characters.`,
+        });
+      }
     }
 
     if (
@@ -99,10 +131,12 @@ export class QuestionValidator {
     if (
       question.timeLimit === undefined ||
       typeof question.timeLimit !== 'number' ||
-      question.timeLimit <= 0 ||
-      Number.isNaN(question.timeLimit)
+      !isStructurallyValidTimer(question.timeLimit)
     ) {
-      errors.push({ field: 'timeLimit', message: 'Time limit must be a positive number in seconds.' });
+      errors.push({
+        field: 'timeLimit',
+        message: `Time limit must be a whole number of seconds from ${QUESTION_TIMER_MIN_SECONDS} to ${QUESTION_TIMER_MAX_SECONDS}.`,
+      });
     }
 
     if (
@@ -131,6 +165,60 @@ export class QuestionValidator {
           errors.push({ field: 'tags', message: 'Each tag must be a non-empty string.' });
         }
       }
+    }
+
+    if (question.professionTags !== undefined) {
+      if (!Array.isArray(question.professionTags)) {
+        errors.push({ field: 'professionTags', message: 'Profession tags must be an array of strings.' });
+      } else {
+        const hasInvalid = question.professionTags.some((tag) => typeof tag !== 'string' || tag.trim() === '');
+        if (hasInvalid) {
+          errors.push({ field: 'professionTags', message: 'Each profession tag must be a non-empty string.' });
+        }
+      }
+    }
+
+    if (question.specialtyTags !== undefined) {
+      if (!Array.isArray(question.specialtyTags)) {
+        errors.push({ field: 'specialtyTags', message: 'Specialty tags must be an array of strings.' });
+      } else {
+        const hasInvalid = question.specialtyTags.some((tag) => typeof tag !== 'string' || tag.trim() === '');
+        if (hasInvalid) {
+          errors.push({ field: 'specialtyTags', message: 'Each specialty tag must be a non-empty string.' });
+        }
+      }
+    }
+
+    if (question.explanation !== undefined) {
+      if (
+        typeof question.explanation !== 'string' ||
+        question.explanation.trim() === '' ||
+        question.explanation.length > QUESTION_EXPLANATION_MAX_LENGTH
+      ) {
+        errors.push({
+          field: 'explanation',
+          message: `Explanation, when present, must be a non-empty string of at most ${QUESTION_EXPLANATION_MAX_LENGTH} characters.`,
+        });
+      }
+    }
+
+    if (question.source !== undefined && !isValidQuestionSource(question.source)) {
+      errors.push({
+        field: 'source',
+        message:
+          'Source, when present, must be an author-supplied label and an optional non-empty locator. The validator does not create citations.',
+      });
+    }
+
+    if (
+      question.reviewStatus !== undefined &&
+      (typeof question.reviewStatus !== 'string' || !isValidReviewStatus(question.reviewStatus))
+    ) {
+      errors.push({
+        field: 'reviewStatus',
+        message:
+          'Review status, when present, must be unreviewed, author-checked, or needs-revision. It is not an expert-review claim.',
+      });
     }
 
     if (question.createdAt !== undefined && (typeof question.createdAt !== 'string' || question.createdAt.trim() === '')) {
@@ -208,6 +296,13 @@ export class QuestionValidator {
       }
     });
 
+    for (const index of findDuplicateChoiceTextIndexes(question.choices)) {
+      errors.push({
+        field: `choices[${index}].text`,
+        message: 'Duplicate choice text detected. Choices must be distinct after trimming and lowercasing.',
+      });
+    }
+
     if (hasMalformedChoice) return;
 
     if (!question.correctAnswer || typeof question.correctAnswer !== 'string' || question.correctAnswer.trim() === '') {
@@ -232,18 +327,31 @@ export class QuestionValidator {
 
     let hasAccepted = false;
     if (Array.isArray(question.acceptedAnswers)) {
-      const validAccepted = question.acceptedAnswers.filter(
-        (ans) => typeof ans === 'string' && ans.trim() !== '',
-      );
-      if (validAccepted.length > 0) {
+      const seen = new Set<string>();
+      question.acceptedAnswers.forEach((ans, index) => {
+        if (typeof ans !== 'string' || ans.trim() === '' || ans.length > QUESTION_ALIAS_MAX_LENGTH) {
+          errors.push({
+            field: 'acceptedAnswers',
+            message: `acceptedAnswers[${index}] must be a non-empty string of at most ${QUESTION_ALIAS_MAX_LENGTH} characters.`,
+          });
+          return;
+        }
+        const key = normalizeAlias(ans);
+        if (seen.has(key)) {
+          errors.push({
+            field: 'acceptedAnswers',
+            message: `Duplicate alias detected after trimming and lowercasing: "${ans}".`,
+          });
+          return;
+        }
+        seen.add(key);
         hasAccepted = true;
-      }
-      if (question.acceptedAnswers.some((ans) => typeof ans !== 'string' || ans.trim() === '')) {
-        errors.push({
-          field: 'acceptedAnswers',
-          message: 'All entries in acceptedAnswers must be non-empty strings.',
-        });
-      }
+      });
+    } else if (question.acceptedAnswers !== undefined) {
+      errors.push({
+        field: 'acceptedAnswers',
+        message: 'acceptedAnswers must be an array of strings when provided.',
+      });
     }
 
     if (!hasCanonical && !hasAccepted) {

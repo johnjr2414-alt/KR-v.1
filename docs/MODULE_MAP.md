@@ -17,6 +17,7 @@ This document defines the strict boundary, files, dependencies, and prohibitions
 | **Quests & NPCs** | NPC dialogue, quest tracking, monster kill / collection objectives | `src/quests/*` | Decoupled from UI via events |
 | **Economy** | Gold purse, shops, banking, investments, businesses | `src/economy/*` | No negative balances, offline calculations |
 | **Arena & PvP** | Tournament models, Reverse-Difficulty calculation | `src/arena/*` | Isolated from PvE difficulty engine |
+| **Online Competitive Models (Stage 0)** | Offline matchmaking queue, tournament bracket, leaderboard ranking, match-record schema | `src/arena/online/*` | No networking, storage, UI wiring, rating calculation, or PvE difficulty |
 | **Storage / Persistence** | IndexedDB read/write, saving, settings, validators | `src/storage/*` | No game rules, no battle state |
 | **Presentation / Scenes** | 2D tilemaps, camera, sprites, input handling | `src/scenes/*` | Must not be authoritative on stats or math |
 | **UI Components** | HTML HUD, question modals, admin dashboard, overlays | `src/ui/*` | Must not alter core rules directly |
@@ -121,3 +122,24 @@ This document defines the strict boundary, files, dependencies, and prohibitions
 - **Dependencies**: Phaser 3, Core Domain managers (`CombatManager`, `ProgressionManager`).
 - **Forbidden Actions**:
   - Must NOT contain authoritative game logic or hardcoded combat damage calculations. All authoritative state belongs in `src/core/`.
+
+### 2.8 Online Competitive Models (`src/arena/online/`, Phase 30.5 Stage 0)
+- **Purpose**: Offline headless models for a future approved online stage: matchmaking pairing,
+  single-elimination tournament brackets, seasonal leaderboard ranking, and the immutable match-record
+  schema.
+- **Files Owned**:
+  - `MatchmakingQueue.ts`
+  - `TournamentBracket.ts`
+  - `LeaderboardRanking.ts`
+  - `MatchRecord.ts`
+- **Public Interfaces**:
+  - `new MatchmakingQueue(options?, clock?)` → `enqueue`, `cancel`, `pollMatch`, `snapshot`
+  - `new TournamentBracket(seeds)` → `reportWinner`, `declareForfeit`, `getReadyMatches`, `getSnapshot`
+  - `new LeaderboardRanking(options?, clock?)` → `upsert`, `getTop`, `getRank`, `snapshot`
+  - `MatchRecord`, `MatchRecordStatus`, `isTerminalMatchStatus`
+- **Dependencies**: None (pure TypeScript; clocks are injected).
+- **Forbidden Actions**:
+  - Must NOT call `fetch`, WebSocket, `XMLHttpRequest`, IndexedDB, or any network/storage API.
+  - Must NOT be wired into scenes, UI, or save schema without a separately approved online stage.
+  - Must NOT calculate rating changes, authoritative difficulty, or PvE outcomes.
+  - Must NOT replace `PvPDifficultyEngine` or the offline `ArenaDuelSession` practice path.

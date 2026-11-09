@@ -2,6 +2,7 @@ import { EquipmentSlot, type ItemDefinition } from '../../inventory/ItemTypes';
 import { InventoryManager, inventoryManager } from '../../inventory/InventoryManager';
 import { getItemDefinition } from '../../inventory/ItemRegistry';
 import { compareEquipment } from '../../inventory/EquipmentComparison';
+import { UI_STRINGS } from '../strings';
 
 export interface InventoryPanelOptions {
   manager?: InventoryManager;
@@ -192,7 +193,7 @@ export class InventoryPanel {
         this.displayItemInfo(detailsEl, itemDef);
         const unequipBtn = document.createElement('button');
         unequipBtn.className = 'item-btn item-btn--unequip';
-        unequipBtn.textContent = 'Unequip';
+        unequipBtn.textContent = UI_STRINGS.common.unequip;
         unequipBtn.addEventListener('click', () => {
           if (this.selectedEquipSlot) {
             const success = this.manager.unequipItem(this.selectedEquipSlot);
@@ -225,7 +226,7 @@ export class InventoryPanel {
         if (itemDef.equipmentSlot) {
           const equipBtn = document.createElement('button');
           equipBtn.className = 'item-btn item-btn--equip';
-          equipBtn.textContent = 'Equip';
+          equipBtn.textContent = UI_STRINGS.common.equip;
 
           // Disable button if level requirement is not met
           if (itemDef.requiredLevel && this.playerLevel < itemDef.requiredLevel) {

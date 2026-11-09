@@ -36,13 +36,13 @@
 }
 
 .arena-card__title {
-  font-size: 17px;
+  font-size: calc(17px * var(--kr-font-scale, 1));
   font-weight: 700;
-  color: #f43f5e;
+  color: #fb7185;
 }
 
 .arena-card__subtitle {
-  font-size: 12px;
+  font-size: calc(12px * var(--kr-font-scale, 1));
   color: #94a3b8;
   margin-top: 2px;
 }
@@ -51,7 +51,7 @@
   background: transparent;
   border: none;
   color: #94a3b8;
-  font-size: 24px;
+  font-size: calc(24px * var(--kr-font-scale, 1));
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
@@ -96,27 +96,27 @@
 }
 
 .arena-combatant__name {
-  font-size: 15px;
+  font-size: calc(15px * var(--kr-font-scale, 1));
   font-weight: 700;
   color: #f8fafc;
 }
 
 .arena-combatant__level {
-  font-size: 12px;
+  font-size: calc(12px * var(--kr-font-scale, 1));
   color: #fbbf24;
 }
 
 .arena-combatant__score {
-  font-size: 24px;
+  font-size: calc(24px * var(--kr-font-scale, 1));
   font-weight: 800;
   color: #38bdf8;
   margin-top: 4px;
 }
 
 .arena-vs {
-  font-size: 18px;
+  font-size: calc(18px * var(--kr-font-scale, 1));
   font-weight: 800;
-  color: #f43f5e;
+  color: #fb7185;
   text-align: center;
   padding: 0 10px;
 }
@@ -127,13 +127,13 @@
   border-left: 4px solid #f43f5e;
   border-radius: 6px;
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: calc(12px * var(--kr-font-scale, 1));
   line-height: 1.4;
   color: #cbd5e1;
 }
 
 .arena-handicap-banner strong {
-  color: #f43f5e;
+  color: #fb7185;
 }
 
 /* Rival selection list */
@@ -167,13 +167,13 @@
 }
 
 .arena-rival-item__name {
-  font-size: 14px;
+  font-size: calc(14px * var(--kr-font-scale, 1));
   font-weight: 700;
   color: #f8fafc;
 }
 
 .arena-rival-item__meta {
-  font-size: 12px;
+  font-size: calc(12px * var(--kr-font-scale, 1));
   color: #94a3b8;
 }
 
@@ -182,7 +182,7 @@
   border: none;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: calc(13px * var(--kr-font-scale, 1));
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -209,7 +209,7 @@
 .arena-outcome-box {
   padding: 12px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: calc(14px * var(--kr-font-scale, 1));
   font-weight: 700;
   text-align: center;
 }
@@ -239,6 +239,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--kr-font-scale, 1));
   color: #94a3b8;
 }

@@ -168,6 +168,59 @@ export class MasteryManager {
   }
 
   /**
+   * Awards raw mastery EXP to a subject directly (e.g. as a professional
+   * assignment reward), reusing the same level curve and level-up listeners as
+   * answer-based gains. Subject mastery remains strictly independent from
+   * character combat progression.
+   */
+  awardMasteryExp(subject: SubjectId, amount: number): MasteryGainResult {
+    const expGained =
+      typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? amount : 0;
+
+    const rec = this.records.get(subject) || {
+      subject,
+      level: 1,
+      currentExp: 0,
+      totalCorrect: 0,
+      totalAttempted: 0,
+    };
+
+    const oldLevel = rec.level;
+    let leveledUp = false;
+
+    if (expGained > 0) {
+      rec.currentExp += expGained;
+
+      // Handle multi-level progression against the shared mastery curve.
+      while (rec.level < this.config.maxMasteryLevel) {
+        const required = getRequiredMasteryExp(rec.level, this.config);
+        if (rec.currentExp >= required) {
+          rec.currentExp -= required;
+          rec.level++;
+          leveledUp = true;
+        } else {
+          break;
+        }
+      }
+
+      if (rec.level >= this.config.maxMasteryLevel) {
+        rec.level = this.config.maxMasteryLevel;
+        rec.currentExp = 0;
+      }
+    }
+
+    this.records.set(subject, rec);
+
+    if (leveledUp) {
+      for (const listener of this.listeners) {
+        listener(subject, oldLevel, rec.level);
+      }
+    }
+
+    return { subject, expGained, leveledUp, newLevel: rec.level };
+  }
+
+  /**
    * Computes progress info toward the next mastery level.
    */
   getProgress(subject: SubjectId): {

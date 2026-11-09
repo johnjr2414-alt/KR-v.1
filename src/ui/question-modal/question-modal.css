@@ -39,7 +39,7 @@
 }
 
 .question-modal__meta {
-  font-size: 13px;
+  font-size: calc(13px * var(--kr-font-scale, 1));
   color: #a0aec0;
   display: flex;
   gap: 10px;
@@ -61,7 +61,7 @@
 
 .question-modal__timer-text {
   font-family: monospace;
-  font-size: 15px;
+  font-size: calc(15px * var(--kr-font-scale, 1));
   font-weight: 700;
   color: #f6ad55;
   min-width: 32px;
@@ -96,7 +96,7 @@
 }
 
 .question-modal__stem {
-  font-size: 18px;
+  font-size: calc(18px * var(--kr-font-scale, 1));
   font-weight: 600;
   line-height: 1.5;
   color: #f7fafc;
@@ -120,7 +120,7 @@
   border: 1px solid #323b4f;
   border-radius: 8px;
   color: #e2e8f0;
-  font-size: 15px;
+  font-size: calc(15px * var(--kr-font-scale, 1));
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -180,7 +180,7 @@
   border: 1px solid #4a5568;
   border-radius: 8px;
   color: #f7fafc;
-  font-size: 16px;
+  font-size: calc(16px * var(--kr-font-scale, 1));
   outline: none;
 }
 
@@ -199,7 +199,7 @@
   border: none;
   border-radius: 8px;
   color: white;
-  font-size: 15px;
+  font-size: calc(15px * var(--kr-font-scale, 1));
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
@@ -211,7 +211,7 @@
 
 .question-modal__submit-btn:disabled {
   background: #2d3748;
-  color: #718096;
+  color: #94a3b8;
   cursor: default;
 }
 
@@ -221,7 +221,7 @@
   margin-top: 20px;
   padding: 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: calc(14px * var(--kr-font-scale, 1));
   line-height: 1.5;
   display: none;
 }
@@ -246,7 +246,7 @@
 
 .question-modal__feedback-title {
   font-weight: 700;
-  font-size: 15px;
+  font-size: calc(15px * var(--kr-font-scale, 1));
   margin-bottom: 6px;
 }
 
@@ -270,7 +270,7 @@
   border: none;
   border-radius: 6px;
   color: #f7fafc;
-  font-size: 14px;
+  font-size: calc(14px * var(--kr-font-scale, 1));
   font-weight: 600;
   cursor: pointer;
 }

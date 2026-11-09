@@ -21,6 +21,7 @@ import { DamageCalculator, damageCalculator } from './DamageCalculator';
 import type { AnswerEvaluationResult } from '../questions/evaluation/AnswerEvaluator';
 import { MasteryManager, masteryManager } from '../mastery/MasteryManager';
 import type { MasteryGainResult } from '../core/types/mastery';
+import { createUniqueId } from '../core/uniqueId';
 
 import { RewardCalculator, rewardCalculator } from './rewards/RewardCalculator';
 import type { MonsterRewardResult } from './rewards/RewardTypes';
@@ -94,7 +95,7 @@ export class BattleSession {
 
     // 4. Initialize State with derived effective combat attributes (base + passive modifiers)
     this.state = {
-      id: crypto.randomUUID(),
+      id: createUniqueId(),
       player: {
         ...options.player,
         defense: options.player.defense + this.passiveBonuses.flatDefense,

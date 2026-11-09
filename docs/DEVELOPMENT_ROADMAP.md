@@ -1,6 +1,9 @@
 # Knowledge Realms — Development Roadmap
 
-This roadmap organizes the incremental development of Knowledge Realms into 21 ordered phases, following the verified prompt sequence from the Master Game Design Package.
+This roadmap organizes the incremental development of Knowledge Realms. The first 21 phases (0–20)
+follow the verified prompt sequence from the Master Game Design Package; subsequent phases (21+) are
+tracked in `docs/IMPLEMENTATION_REPORTS.md`, with the current Phase 27 track detailed at the end of
+this document.
 
 ---
 
@@ -182,3 +185,54 @@ Phase 20: End-to-End Integration & Polish [COMPLETED]
 - [x] **Task 20.1**: Run comprehensive headless test suite across all modules.
 - [x] **Task 20.2**: Verify end-to-end user loop: Start -> Explore -> Battle -> Level Up -> Admin Edit -> Reload.
 - [x] **Task 20.3**: Production build optimization and package inspection.
+
+---
+
+## Later Phases (21+)
+
+Phases 21–26 (centralized player session & save/load, combat rewards & currency persistence, unified
+question repository, exploration HUD, village shop, pause/settings, quest journal, core-loop
+regression, animation & combat feedback, scene transitions, audio, responsive UI, skill system, stat
+allocation, equipment & enhancement, economy & bank, learning analytics, content authoring/review,
+world map & regions, arena/colosseum, story quests, and achievements) are tracked in
+`docs/IMPLEMENTATION_REPORTS.md`.
+
+### Phase 27: Real-World Professions and Careers
+
+Redefined by the Phase 27 Master Implementation Plan into seven sub-phases.
+
+- [x] **Phase 27.1**: Profession framework, categories, and enrollment.
+- [x] **Phase 27.2**: Workplace, facility, and world integration.
+- [x] **Phase 27.3**: Professional assignment engine.
+- [x] **Phase 27.4**: Profession question integration.
+- [x] **Phase 27.5**: Profession experience, rank, and reputation progression.
+- [x] **Phase 27.6**: Career UI, NPC, and quest integration.
+- [x] **Phase 27.7**: Seed professions end-to-end and extensibility validation.
+
+### Phase 28: Save Integrity and Administration Hardening
+
+- [x] **Phase 28.1**: Save schema versioning and migration framework.
+- [x] **Phase 28.2**: Backup, restore, and save-slot management.
+- [x] **Phase 28.3**: Corruption recovery and data diagnostics.
+- [x] **Phase 28.4**: Super Admin protection and data validation.
+- [x] **Phase 28.5**: Import/export compatibility and content versioning.
+
+### Phase 29: Release Readiness
+
+- [x] **Phase 29.1**: Performance and memory optimization.
+- [x] **Phase 29.2**: Browser and device compatibility.
+- [x] **Phase 29.3**: PWA/offline installation and update behavior.
+- [x] **Phase 29.4**: Accessibility, localization readiness, and final UX review.
+- [x] **Phase 29.5**: Production build, deployment, versioning, and release checklist.
+
+### Phase 30: Online Architecture Preparation (Design Only)
+
+Design-only proposals. No online multiplayer, authentication, or backend may be implemented
+without explicit user approval of a separate project.
+
+- [x] **Phase 30.1**: Server-authoritative boundaries.
+- [x] **Phase 30.2**: Account and identity design.
+- [x] **Phase 30.3**: Online save synchronization design.
+- [x] **Phase 30.4**: PvP reverse-difficulty specification (14 decisions approved 2026-11-09).
+- [x] **Phase 30.5**: Matchmaking, leaderboards, guilds, and tournaments. Stage 0 offline headless
+  cores (queue, bracket, ranking, match record) implemented 2026-11-09; no network or UI wiring.

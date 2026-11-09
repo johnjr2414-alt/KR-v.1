@@ -8,6 +8,7 @@ import { QuestionModal } from '../ui/question-modal/QuestionModal';
 import { AnswerOutcome } from '../core/types/combat';
 import { formatCombatFeedback, type CombatFeedbackDescriptor } from '../combat/CombatFeedbackMapper';
 import { audioManager } from '../audio';
+import { prefersReducedMotion } from '../ui/motion';
 import '../ui/battle-overlay/battle-overlay.css';
 import '../ui/question-modal/question-modal.css';
 import '../ui/inventory-panel/inventory-panel.css';
@@ -188,21 +189,23 @@ export class BattleScene extends Phaser.Scene {
     const monsterX = width / 2 + 140;
     const monsterY = height / 2 + 20;
 
-    this.tweens.add({
-      targets: this.playerVisual,
-      x: '+=30',
-      duration: 100,
-      yoyo: true,
-      ease: 'Power2',
-    });
+    if (!prefersReducedMotion()) {
+      this.tweens.add({
+        targets: this.playerVisual,
+        x: '+=30',
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+      });
 
-    this.tweens.add({
-      targets: this.monsterVisual,
-      alpha: 0.3,
-      duration: 80,
-      yoyo: true,
-      repeat: 2,
-    });
+      this.tweens.add({
+        targets: this.monsterVisual,
+        alpha: 0.3,
+        duration: 80,
+        yoyo: true,
+        repeat: 2,
+      });
+    }
 
     this.spawnFloatingText(monsterX, monsterY, feedback.displayText, feedback.isCritical ? '#ef4444' : '#fbbf24', feedback.isCritical);
     this.overlay.showLogMessage(`⚔️ Player deals ${feedback.damageAmount} damage!`, feedback);
@@ -213,21 +216,23 @@ export class BattleScene extends Phaser.Scene {
     const playerX = width / 2 - 140;
     const playerY = height / 2 + 20;
 
-    this.tweens.add({
-      targets: this.monsterVisual,
-      x: '-=30',
-      duration: 100,
-      yoyo: true,
-      ease: 'Power2',
-    });
+    if (!prefersReducedMotion()) {
+      this.tweens.add({
+        targets: this.monsterVisual,
+        x: '-=30',
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+      });
 
-    this.tweens.add({
-      targets: this.playerVisual,
-      alpha: 0.3,
-      duration: 80,
-      yoyo: true,
-      repeat: 2,
-    });
+      this.tweens.add({
+        targets: this.playerVisual,
+        alpha: 0.3,
+        duration: 80,
+        yoyo: true,
+        repeat: 2,
+      });
+    }
 
     this.spawnFloatingText(playerX, playerY, feedback.displayText, '#f87171', false);
     this.overlay.showLogMessage(`💥 Monster retaliates for ${feedback.damageAmount} damage!`, feedback);
