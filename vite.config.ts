@@ -4,6 +4,7 @@ import path from 'node:path';
 import { APP_MANIFEST, PWA_WORKBOX_OPTIONS } from './src/pwa/pwaConfig';
 
 export default defineConfig({
+  base: './',
   plugins: [
     VitePWA({
       strategies: 'generateSW',
@@ -34,3 +35,4 @@ export default defineConfig({
     },
   },
 });
+
